@@ -186,11 +186,11 @@ function sendChatMessage() {
         timestamp: Date.now()
     });
     
-    // 保存到localStorage并触发存储事件
+    // 保存到localStorage
     saveToLocalStorage();
     
-    // 手动触发存储事件以便在当前标签页也能更新
-    triggerStorageEvent();
+    // 直接在当前页面添加消息（因为当前页面的storage事件不会触发）
+    addMessage(userId, username, text);
     
     // 清空输入框并添加发送动画
     messageInput.value = '';
@@ -198,7 +198,7 @@ function sendChatMessage() {
     setTimeout(() => sendMessage.classList.remove('sending'), 300);
 }
 
-// 触发存储事件
+// 移除不需要的triggerStorageEvent函数
 function triggerStorageEvent() {
     const event = new Event('storage');
     event.key = 'chatAppData';

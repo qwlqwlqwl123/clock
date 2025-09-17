@@ -6,538 +6,461 @@
 }
 
 body {
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
-    color: #333;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
     overflow: hidden;
-    position: relative;
-}
-
-/* 背景图片样式 - 优化高清显示 */
-.background-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    filter: blur(5px);
-    z-index: -1;
-    transition: background-image 1s ease-in-out;
-    /* 确保图片高质量显示 */
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-}
-
-/* 背景遮罩 */
-.background-container::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.4);
-    z-index: 1;
 }
 
 .container {
     text-align: center;
-    position: relative;
-    z-index: 2;
-    padding: 20px;
-}
-
-/* 物理指针时钟样式 - 磨砂玻璃效果 */
-.clock {
-    position: relative;
-    width: 320px;
-    height: 320px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: transform 0.3s ease;
-    user-select: none;
-}
-
-.clock:hover {
-    transform: scale(1.02);
-}
-
-.clock-face {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    background: rgba(255, 255, 255, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.1),
-        0 0 0 1px rgba(255, 255, 255, 0.2);
-}
-
-/* 时钟刻度 - 修复对齐问题 */
-.clock-marks {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-
-.mark {
-    position: absolute;
-    top: 5%;
-    left: 50%;
-    width: 3px;
-    height: 15px;
-    background: rgba(50, 50, 50, 0.7);
-    transform-origin: 50% calc(50% + 75px);
-    border-radius: 3px;
-}
-
-/* 12个时钟刻度位置 - 精确计算 */
-.mark-1 { transform: translateX(-50%) rotate(30deg); }
-.mark-2 { transform: translateX(-50%) rotate(60deg); }
-.mark-3 { transform: translateX(-50%) rotate(90deg); }
-.mark-4 { transform: translateX(-50%) rotate(120deg); }
-.mark-5 { transform: translateX(-50%) rotate(150deg); }
-.mark-6 { transform: translateX(-50%) rotate(180deg); }
-.mark-7 { transform: translateX(-50%) rotate(210deg); }
-.mark-8 { transform: translateX(-50%) rotate(240deg); }
-.mark-9 { transform: translateX(-50%) rotate(270deg); }
-.mark-10 { transform: translateX(-50%) rotate(300deg); }
-.mark-11 { transform: translateX(-50%) rotate(330deg); }
-.mark-12 { transform: translateX(-50%) rotate(0deg); }
-
-/* 时钟指针容器 */
-.clock-hands {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-
-/* 时钟指针样式 */
-.hand {
-    --rotation: 0;
-    position: absolute;
-    bottom: 50%;
-    left: 50%;
-    background: rgba(50, 50, 50, 0.9);
-    transform-origin: 50% 100%;
-    transform: translateX(-50%) rotate(calc(var(--rotation) * 1deg));
-    border-radius: 10px;
-    transition: transform 0.05s cubic-bezier(0.1, 2.7, 0.58, 1);
-}
-
-.hour-hand {
-    width: 8px;
-    height: 28%;
-    background: rgba(50, 50, 50, 0.9);
-}
-
-.minute-hand {
-    width: 6px;
-    height: 38%;
-    background: rgba(50, 50, 50, 0.8);
-}
-
-.second-hand {
-    width: 3px;
-    height: 42%;
-    background: rgba(230, 57, 70, 0.8);
-}
-
-/* 指针中心圆点 */
-.hand-center {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 50%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border: 2px solid rgba(50, 50, 50, 0.5);
-}
-
-/* 日期显示样式 */
-.date-display {
-    position: absolute;
-    bottom: 25%;
-    font-size: 1.1rem;
-    color: rgba(50, 50, 50, 0.8);
-    font-weight: 500;
-    background: rgba(255, 255, 255, 0.5);
-    padding: 5px 15px;
+    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 30px;
     border-radius: 20px;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-}
-
-/* 对话框样式 */
-.dialog {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(255, 255, 255, 0.8);
-    color: #333;
-    padding: 25px;
-    border-radius: 15px;
-    width: 90%;
-    max-width: 400px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    animation: fadeIn 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    max-width: 90%;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
-
-.dialog-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* 时钟界面样式 */
+#clock-container h1 {
     margin-bottom: 20px;
+    font-size: 2.5rem;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.close-btn {
-    background: rgba(255, 255, 255, 0.5);
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #666;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-    background: rgba(255, 255, 255, 0.8);
-    color: #333;
-}
-
-#roomInput {
-    width: 100%;
-    padding: 12px 15px;
-    margin-bottom: 15px;
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(200, 200, 200, 0.5);
-    border-radius: 25px;
-    font-size: 1rem;
-    color: #333;
-    transition: all 0.3s ease;
-    outline: none;
-}
-
-#roomInput:focus {
-    background: rgba(255, 255, 255, 0.9);
-    border-color: #4285f4;
-    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
-}
-
-.join-btn {
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
-    color: white;
-    border: none;
-    border-radius: 25px;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    outline: none;
-}
-
-.join-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(66, 133, 244, 0.3);
-}
-
-/* 聊天室样式 */
-.chat-room {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    color: #333;
+.clock {
     display: flex;
     flex-direction: column;
-    z-index: 2000;
-    animation: slideIn 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    gap: 15px;
 }
 
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-    }
-    to {
-        transform: translateX(0);
-    }
+#time {
+    font-size: 4rem;
+    font-weight: bold;
+    letter-spacing: 3px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.2s ease;
 }
 
+#time:hover {
+    transform: scale(1.05);
+}
+
+#date, #day {
+    font-size: 1.5rem;
+    opacity: 0.9;
+}
+
+.hint {
+    font-size: 1rem;
+    opacity: 0.7;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+/* 数字输入界面样式 */
+#input-container h2 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+}
+
+.room-input {
+    font-size: 3rem;
+    font-weight: bold;
+    letter-spacing: 10px;
+    margin: 30px 0;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    min-width: 300px;
+}
+
+.keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.key {
+    padding: 20px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.key:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.key:active {
+    transform: scale(0.95);
+}
+
+/* 聊天室界面样式 */
 .chat-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    background: linear-gradient(135deg, rgba(66, 133, 244, 0.8) 0%, rgba(52, 168, 83, 0.8) 100%);
-    color: white;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
 }
 
-.leave-btn {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 8px 15px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    outline: none;
+.chat-header h2 {
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+    margin: 0;
 }
 
-.leave-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+#current-room {
+    font-size: 1.2rem;
+    opacity: 0.8;
 }
 
-.chat-messages {
-    flex: 1;
-    padding: 20px;
+.messages {
+    height: 400px;
     overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: left;
+    position: relative;
+}
+
+/* 自定义滚动条 */
+.messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.messages::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.messages::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.message {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: flex-start;
+    max-width: 80%;
+}
+
+/* 自己发送的消息在右侧 */
+.own-message {
+    flex-direction: row-reverse;
+    margin-left: auto;
+}
+
+/* 他人发送的消息在左侧 */
+.other-message {
+    flex-direction: row;
+}
+
+/* 消息头像样式 */
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 消息内容容器 */
+.message-content {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 10px;
+    position: relative;
+}
+
+/* 自己发送的消息样式 */
+.own-message .message-content {
+    background-color: rgba(220, 248, 198, 0.8);
+    border-bottom-right-radius: 5px;
+}
+
+/* 他人发送的消息样式 */
+.other-message .message-content {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-bottom-left-radius: 5px;
+}
+
+/* 消息头部（包含发送者和时间） */
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.message .sender {
+    font-weight: bold;
+    color: #a8c7ff;
+    font-size: 0.9rem;
+}
+
+.own-message .sender {
+    color: #4a7c59;
+}
+
+.message .time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+/* 消息文本 */
+.message-text {
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.own-message .message-text {
+    color: #333;
+}
+
+/* 系统通知样式 */
+.notification {
+    background-color: rgba(248, 249, 250, 0.8);
+    text-align: center;
+    max-width: 70%;
+    margin: 10px auto;
+    padding: 8px 15px;
+    border-radius: 15px;
+    font-size: 0.9rem;
+}
+
+.notification div {
+    color: rgba(102, 102, 102, 0.8);
+    font-style: italic;
+}
+
+/* 发送者头像在通知中的样式 */
+.notification .message-avatar {
+    display: none;
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 10px;
+}
+
+#message-input {
+    flex: 1;
+    padding: 12px;
+    font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 10px;
+    color: white;
+}
+
+#message-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* 按钮样式 */
+.back-button, .leave-button, .send-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 20px;
+}
+
+.send-button {
+    margin-top: 0;
+    min-width: 80px;
+}
+
+.back-button:hover, .leave-button:hover, .send-button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 用户信息设置界面样式 */
+.user-info-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.form-group {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-.chat-input-area {
-    display: flex;
-    padding: 15px 20px;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(200, 200, 200, 0.3);
+.form-group label {
+    font-size: 1.1rem;
+    font-weight: bold;
 }
 
-#messageInput {
-    flex: 1;
-    padding: 10px 15px;
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(200, 200, 200, 0.5);
-    border-radius: 20px 0 0 20px;
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select {
+    padding: 10px;
     font-size: 1rem;
-    color: #333;
-    transition: all 0.3s ease;
-    outline: none;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 10px;
+    color: white;
 }
 
-#messageInput:focus {
-    background: rgba(255, 255, 255, 0.9);
-    border-color: #4285f4;
-    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+.form-group input[type="text"]::placeholder,
+.form-group input[type="number"]::placeholder {
+    color: rgba(255, 255, 255, 0.6);
 }
 
-.send-btn {
+.gender-options {
+    display: flex;
+    gap: 20px;
+}
+
+.gender-options label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 1rem;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.avatar-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    object-fit: cover;
+}
+
+.change-avatar-btn,
+.save-button {
     padding: 10px 20px;
-    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+    font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.2);
     color: white;
     border: none;
-    border-radius: 0 20px 20px 0;
-    font-size: 1rem;
-    font-weight: bold;
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    outline: none;
+    transition: all 0.2s ease;
 }
 
-.send-btn:hover {
-    box-shadow: 0 5px 15px rgba(66, 133, 244, 0.3);
+.change-avatar-btn:hover,
+.save-button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* 消息样式 - 左右区分 */
-.message {
-    max-width: 70%;
-    animation: messageIn 0.3s ease;
-    word-wrap: break-word;
-    display: flex;
-    flex-direction: column;
+.save-button {
+    margin-top: 20px;
+    font-weight: bold;
+    padding: 12px;
 }
 
-@keyframes messageIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* 他人消息（左边） */
-.other-message {
-    align-self: flex-start;
-}
-
-.other-message .message-user {
-    font-size: 0.8rem;
-    color: #666;
-    margin-bottom: 3px;
-    padding-left: 10px;
-}
-
-.other-message .message-content {
-    background: white;
-    padding: 10px 15px;
-    border-radius: 18px 18px 18px 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-/* 自己消息（右边） */
-.own-message {
-    align-self: flex-end;
-}
-
-.own-message .message-content {
-    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
-    color: white;
-    padding: 10px 15px;
-    border-radius: 18px 18px 4px 18px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* 隐藏元素 */
+/* 通用样式 */
 .hidden {
-    display: none !important;
-}
-
-/* 长按反馈动画 */
-.long-press-active {
-    animation: pressAnimation 0.5s ease;
-}
-
-@keyframes pressAnimation {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(0.95); }
-}
-
-/* 输入错误动画 */
-.input-error {
-    animation: shake 0.5s ease;
-    border-color: #ea4335 !important;
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
-}
-
-/* 发送按钮动画 */
-.sending {
-    animation: sendAnimation 0.3s ease;
-}
-
-@keyframes sendAnimation {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(0.9); }
+    display: none;
 }
 
 /* 响应式设计 */
-@media (max-width: 600px) {
-    .clock {
-        width: 250px;
-        height: 250px;
+@media (max-width: 768px) {
+    #clock-container h1 {
+        font-size: 2rem;
     }
     
-    .mark {
-        transform-origin: 50% calc(50% + 60px);
+    #time {
+        font-size: 3rem;
     }
     
-    .hour-hand {
-        height: 25%;
+    #date, #day {
+        font-size: 1.2rem;
     }
     
-    .minute-hand {
-        height: 35%;
-    }
-    
-    .second-hand {
-        height: 40%;
-    }
-    
-    .date-display {
-        font-size: 1rem;
-        bottom: 20%;
-    }
-    
-    .dialog {
+    .container {
         padding: 20px;
+        margin: 20px;
+    }
+    
+    .room-input {
+        font-size: 2.5rem;
+        min-width: 250px;
+    }
+    
+    .messages {
+        height: 300px;
+    }
+}
+
+@media (max-width: 480px) {
+    #clock-container h1 {
+        font-size: 1.8rem;
+    }
+    
+    #time {
+        font-size: 2.5rem;
+    }
+    
+    #date, #day {
+        font-size: 1rem;
+    }
+    
+    .room-input {
+        font-size: 2rem;
+        min-width: 200px;
+    }
+    
+    .key {
+        padding: 15px;
+        font-size: 1.2rem;
+    }
+    
+    .chat-header {
+        flex-direction: column;
+        gap: 10px;
     }
     
     .chat-input-area {
-        padding: 10px 15px;
+        flex-direction: column;
     }
-    
-    .message {
-        max-width: 85%;
-    }
-}
-
-/* 滚动条样式 */
-.chat-messages::-webkit-scrollbar {
-    width: 8px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 4px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-    background: rgba(200, 200, 200, 0.7);
-    border-radius: 4px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(150, 150, 150, 0.7);
-}
-
-/* 修复旋转角度计算 */
-.hand {
-    transform: translateX(-50%) rotate(calc(var(--rotation) * 1deg));
 }

@@ -3,72 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>阳光时钟聊天室</title>
+    <title>网页时钟聊天室</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 背景图片容器 -->
-    <div class="background-container"></div>
+    <!-- 引入本地安装的GoEasy包 -->
+    <script src="./goeasy.min.js"></script>
     
-    <div class="container">
-        <!-- 物理指针时钟 -->
-        <div id="clock" class="clock">
-            <div class="clock-face">
-                <!-- 时钟刻度 -->
-                <div class="clock-marks">
-                    <div class="mark mark-1"></div>
-                    <div class="mark mark-2"></div>
-                    <div class="mark mark-3"></div>
-                    <div class="mark mark-4"></div>
-                    <div class="mark mark-5"></div>
-                    <div class="mark mark-6"></div>
-                    <div class="mark mark-7"></div>
-                    <div class="mark mark-8"></div>
-                    <div class="mark mark-9"></div>
-                    <div class="mark mark-10"></div>
-                    <div class="mark mark-11"></div>
-                    <div class="mark mark-12"></div>
-                </div>
-                
-                <!-- 时钟指针 -->
-                <div class="clock-hands">
-                    <div class="hand hour-hand" id="hourHand"></div>
-                    <div class="hand minute-hand" id="minuteHand"></div>
-                    <div class="hand second-hand" id="secondHand"></div>
-                    <div class="hand-center"></div>
-                </div>
-                
-                <!-- 数字日期显示 -->
-                <div class="date-display" id="dateDisplay">2023-01-01</div>
-            </div>
-        </div>
-        
-        <!-- 对话框，默认隐藏 -->
-        <div id="chatDialog" class="dialog hidden">
-            <div class="dialog-header">
-                <h3>创建或加入聊天室</h3>
-                <button id="closeDialog" class="close-btn">×</button>
-            </div>
-            <div class="dialog-content">
-                <input type="text" id="roomInput" placeholder="请输入 #+会话名称" autofocus>
-                <button id="joinRoom" class="join-btn">进入聊天室</button>
-            </div>
-        </div>
-        
-        <!-- 聊天室，默认隐藏 -->
-        <div id="chatRoom" class="chat-room hidden">
-            <div class="chat-header">
-                <h3 id="roomName">聊天室</h3>
-                <button id="leaveRoom" class="leave-btn">离开</button>
-            </div>
-            <div id="chatMessages" class="chat-messages"></div>
-            <div class="chat-input-area">
-                <input type="text" id="messageInput" placeholder="输入消息...">
-                <button id="sendMessage" class="send-btn">发送</button>
-            </div>
+    <!-- 时钟界面 -->
+    <div id="clock-container" class="container">
+        <h1>网页时钟</h1>
+        <div class="clock">
+            <div id="time">00:00:00</div>
+            <div id="date">2023-01-01</div>
+            <div id="day">星期日</div>
+            <p class="hint">长按时间区域输入6位数字进入聊天室</p>
         </div>
     </div>
-    
+
+    <!-- 数字输入界面 -->
+    <div id="input-container" class="container hidden">
+        <h2>输入6位数字进入聊天室</h2>
+        <div id="room-number" class="room-input">000000</div>
+        <div class="keypad">
+            <button class="key" data-value="1">1</button>
+            <button class="key" data-value="2">2</button>
+            <button class="key" data-value="3">3</button>
+            <button class="key" data-value="4">4</button>
+            <button class="key" data-value="5">5</button>
+            <button class="key" data-value="6">6</button>
+            <button class="key" data-value="7">7</button>
+            <button class="key" data-value="8">8</button>
+            <button class="key" data-value="9">9</button>
+            <button class="key" data-value="clear">清除</button>
+            <button class="key" data-value="0">0</button>
+            <button class="key" data-value="enter">进入</button>
+        </div>
+        <button id="back-to-clock" class="back-button">返回时钟</button>
+    </div>
+
+    <!-- 用户信息设置界面 -->
+    <div id="user-info-container" class="container hidden">
+        <h2>完善个人信息</h2>
+        <div class="user-info-form">
+            <div class="form-group">
+                <label for="user-name">昵称：</label>
+                <input type="text" id="user-name" placeholder="请输入昵称">
+            </div>
+            
+            <div class="form-group">
+                <label>性别：</label>
+                <div class="gender-options">
+                    <label><input type="radio" name="gender" value="male" checked> 男</label>
+                    <label><input type="radio" name="gender" value="female"> 女</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="user-region">地域：</label>
+                <select id="user-region">
+                    <option value="北京">北京</option>
+                    <option value="上海">上海</option>
+                    <option value="广州">广州</option>
+                    <option value="深圳">深圳</option>
+                    <option value="杭州">杭州</option>
+                    <option value="南京">南京</option>
+                    <option value="成都">成都</option>
+                    <option value="武汉">武汉</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="user-age">年龄：</label>
+                <input type="number" id="user-age" min="1" max="120" placeholder="请输入年龄">
+            </div>
+            
+            <div class="form-group">
+                <label>头像：</label>
+                <div class="avatar-section">
+                    <img id="user-avatar" src="" alt="用户头像" class="avatar">
+                    <button id="change-avatar-btn" class="change-avatar-btn">更换头像</button>
+                </div>
+            </div>
+            
+            <button id="save-user-info-btn" class="save-button">保存信息并进入聊天室</button>
+        </div>
+    </div>
+
+    <!-- 聊天室界面 -->
+    <div id="chat-container" class="container hidden">
+        <div class="chat-header">
+            <h2>聊天室 <span id="current-room"></span></h2>
+            <button id="leave-chat" class="leave-button">离开聊天室</button>
+        </div>
+        <div id="messages" class="messages"></div>
+        <div class="chat-input-area">
+            <input type="text" id="message-input" placeholder="输入消息...">
+            <button id="send-message" class="send-button">发送</button>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

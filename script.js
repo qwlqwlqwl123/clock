@@ -186,6 +186,7 @@ function updateClock() {
 // 长按开始事件
 function handleLongPressStart() {
     longPressTimer = setTimeout(() => {
+        console.log('长按触发，显示输入界面');
         showInputScreen();
     }, 1000); // 1秒长按触发
 }
@@ -194,6 +195,8 @@ function handleLongPressStart() {
 function handleLongPressEnd() {
     clearTimeout(longPressTimer);
 }
+
+
 
 // 显示数字输入界面
 function showInputScreen() {
@@ -217,6 +220,7 @@ function showChatScreen(roomNumber) {
     
     clockContainer.classList.add('hidden');
     inputContainer.classList.add('hidden');
+    userInfoContainer.classList.add('hidden');
     chatContainer.classList.remove('hidden');
     
     // 加载本地聊天室消息
@@ -345,8 +349,8 @@ function showUserInfoScreen() {
         userAvatarImg.src = currentUserAvatar;
     }
     
-    // 尝试自动获取用户地域
-    getUserRegion();
+    // 暂时禁用自动获取用户地域，以避免API请求错误
+    // getUserRegion();
 }
 
 // 处理数字按键点击
@@ -399,6 +403,12 @@ function saveUserInfo() {
         currentUserAge = userAge;
     }
 }
+
+
+
+
+
+
 
 // 设置性别选择事件监听
 function setupGenderListeners() {
@@ -505,29 +515,21 @@ function displayMessages(roomNumber) {
             const contentElement = document.createElement('div');
             contentElement.classList.add('message-content');
             
-            // 添加发送者和时间
-            const senderElement = document.createElement('div');
-            senderElement.classList.add('sender');
-            senderElement.textContent = message.user;
-            
-            const timeElement = document.createElement('div');
-            timeElement.classList.add('time');
-            timeElement.textContent = message.time;
-            
-            // 添加消息头部
-            const headerElement = document.createElement('div');
-            headerElement.classList.add('message-header');
-            headerElement.appendChild(senderElement);
-            headerElement.appendChild(timeElement);
-            
             // 添加消息文本
             const textElement = document.createElement('div');
-            textElement.classList.add('message-text');
             textElement.textContent = message.text;
             
-            // 组装消息内容
-            contentElement.appendChild(headerElement);
-            contentElement.appendChild(textElement);
+            // 添加时间元素（自己消息的时间）
+            if (isOwnMessage) {
+                const timeElement = document.createElement('div');
+                timeElement.classList.add('time');
+                timeElement.textContent = message.time;
+                contentElement.appendChild(textElement);
+                contentElement.appendChild(timeElement);
+            } else {
+                // 他人消息直接添加文本
+                contentElement.appendChild(textElement);
+            }
             
             // 添加头像和内容到消息元素
             if (isOwnMessage) {
@@ -592,17 +594,16 @@ function sendMessage() {
 
 // 事件监听器
 // 长按时间区域
-if (timeElement) {
-    timeElement.addEventListener('mousedown', handleLongPressStart);
-    timeElement.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // 防止默认行为
-        handleLongPressStart();
-    });
-    
-    timeElement.addEventListener('mouseup', handleLongPressEnd);
-    timeElement.addEventListener('mouseleave', handleLongPressEnd);
-    timeElement.addEventListener('touchend', handleLongPressEnd);
-}
+timeElement.addEventListener('mousedown', handleLongPressStart);
+timeElement.addEventListener('mouseup', handleLongPressEnd);
+timeElement.addEventListener('mouseleave', handleLongPressEnd);
+
+// 移动设备触摸事件
+timeElement.addEventListener('touchstart', function(e) {
+    e.preventDefault(); // 阻止默认行为
+    handleLongPressStart();
+});
+timeElement.addEventListener('touchend', handleLongPressEnd);
 
 // 返回时钟按钮
 if (backToClockButton) {
@@ -662,6 +663,8 @@ updateClock();
 
 // 每秒更新一次时钟
 setInterval(updateClock, 1000);
+
+
 
 // 页面加载完成后初始化GoEasy和事件监听
 window.addEventListener('load', function() {

@@ -629,6 +629,13 @@ function renderRoomList() {
         
         // 添加点击事件
         roomItem.addEventListener('click', () => {
+            // 如果是长按操作，则不进入聊天室或用户信息页面
+            if (isLongPress) {
+                // 重置长按标记
+                isLongPress = false;
+                return;
+            }
+            
             if (state.currentUserName && state.currentUserName !== `用户${Math.floor(Math.random() * 10000)}`) {
                 showChatScreen(room.number);
             } else {
@@ -640,6 +647,7 @@ function renderRoomList() {
         // 长按事件相关变量
         let longPressTimer;
         const longPressDuration = 800; // 长按触发时间（毫秒）
+        let isLongPress = false; // 标记是否是长按操作
         
         // 鼠标按下/触摸开始事件
         roomItem.addEventListener('mousedown', startLongPress);
@@ -651,8 +659,10 @@ function renderRoomList() {
         roomItem.addEventListener('touchend', cancelLongPress);
         
         function startLongPress() {
+            isLongPress = false;
             longPressTimer = setTimeout(() => {
-                // 防止点击事件触发
+                // 标记为长按操作
+                isLongPress = true;
                 cancelLongPress();
                 
                 // 创建自定义操作菜单

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>网页时钟聊天室</title>
     <link rel="stylesheet" href="style.css">
+    <!-- 添加Supabase客户端库 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <!-- 引入本地安装的GoEasy包 -->
@@ -21,23 +23,13 @@
         </div>
     </div>
 
-    <!-- 数字输入界面 -->
+    <!-- 聊天室列表界面 -->
     <div id="input-container" class="container hidden">
-        <h2>输入6位数字进入聊天室</h2>
-        <div id="room-number" class="room-input">000000</div>
-        <div class="keypad">
-            <button class="key" data-value="1">1</button>
-            <button class="key" data-value="2">2</button>
-            <button class="key" data-value="3">3</button>
-            <button class="key" data-value="4">4</button>
-            <button class="key" data-value="5">5</button>
-            <button class="key" data-value="6">6</button>
-            <button class="key" data-value="7">7</button>
-            <button class="key" data-value="8">8</button>
-            <button class="key" data-value="9">9</button>
-            <button class="key" data-value="clear">清除</button>
-            <button class="key" data-value="0">0</button>
-            <button class="key" data-value="enter">进入</button>
+        <h2>我的聊天室</h2>
+        <button id="add-new-room" class="add-room-button">添加新聊天室</button>
+        <div id="room-list" class="room-list">
+            <!-- 聊天室列表将通过JavaScript动态生成 -->
+            <div class="room-list-placeholder">暂无进入过的聊天室</div>
         </div>
         <button id="back-to-clock" class="back-button">返回时钟</button>
     </div>
@@ -90,10 +82,45 @@
         </div>
     </div>
 
+    <!-- 抽屉遮罩层 -->
+    <div id="drawer-overlay" class="drawer-overlay"></div>
+
+    <!-- 用户信息抽屉 -->
+    <div id="user-info-drawer" class="drawer">
+        <div class="drawer-header">
+            <h3>个人信息</h3>
+            <button id="close-drawer" class="close-drawer-btn">×</button>
+        </div>
+        <div class="drawer-content">
+            <div class="user-avatar-large">
+                <img id="drawer-user-avatar" src="" alt="用户头像">
+            </div>
+            <div class="user-info-item">
+                <span class="info-label">昵称：</span>
+                <span id="drawer-user-name"></span>
+            </div>
+            <div class="user-info-item">
+                <span class="info-label">性别：</span>
+                <span id="drawer-user-gender"></span>
+            </div>
+            <div class="user-info-item">
+                <span class="info-label">地域：</span>
+                <span id="drawer-user-region"></span>
+            </div>
+            <div class="user-info-item">
+                <span class="info-label">年龄：</span>
+                <span id="drawer-user-age"></span>
+            </div>
+        </div>
+    </div>
+
     <!-- 聊天室界面 -->
     <div id="chat-container" class="container hidden">
         <div class="chat-header">
-            <h2>聊天室 <span id="current-room"></span></h2>
+            <div class="chat-header-left">
+                <button id="my-page-btn" class="my-page-button">我的页面</button>
+                <h2>聊天室 <span id="current-room"></span></h2>
+            </div>
             <button id="leave-chat" class="leave-button">离开聊天室</button>
         </div>
         <div id="messages" class="messages"></div>

@@ -74,53 +74,136 @@ body {
     font-style: italic;
 }
 
-/* 数字输入界面样式 */
+/* 聊天室列表界面样式 */
 #input-container h2 {
     margin-bottom: 20px;
     font-size: 1.8rem;
     letter-spacing: 1px;
 }
 
-.room-input {
-    font-size: 3rem;
-    font-weight: bold;
-    letter-spacing: 10px;
-    margin: 30px 0;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-    min-width: 300px;
-}
-
-.keypad {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin: 20px 0;
-    max-width: 300px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.key {
-    padding: 20px;
-    font-size: 1.5rem;
-    font-weight: bold;
+.add-room-button {
+    padding: 15px 25px;
+    font-size: 1.2rem;
     background-color: rgba(255, 255, 255, 0.2);
     color: white;
     border: none;
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s ease;
+    margin: 20px 0;
 }
 
-.key:hover {
+.add-room-button:hover {
     background-color: rgba(255, 255, 255, 0.3);
     transform: scale(1.05);
 }
 
-.key:active {
-    transform: scale(0.95);
+.room-list {
+    flex: 1;
+    overflow-y: auto;
+    margin: 20px 0;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.room-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.room-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.room-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.room-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.room-list-placeholder {
+    text-align: center;
+    opacity: 0.7;
+    font-style: italic;
+    margin-top: 50px;
+}
+
+.room-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    margin: 10px 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.room-item:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateX(5px);
+}
+
+.room-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.room-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.room-remark {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.room-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.last-visited {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin-bottom: 5px;
+}
+
+.message-count {
+    font-size: 0.9rem;
+    background-color: rgba(255, 0, 0, 0.5);
+    padding: 3px 8px;
+    border-radius: 10px;
+    min-width: 24px;
+    text-align: center;
+}
+
+.cancel-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: rgba(255, 0, 0, 0.3);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 20px 0;
+}
+
+.cancel-button:hover {
+    background-color: rgba(255, 0, 0, 0.5);
 }
 
 /* 聊天室界面样式 */
@@ -129,6 +212,7 @@ body {
     flex-direction: column;
     width: 100%;
     height: 100%;
+    position: relative;
 }
 
 .chat-header {
@@ -139,6 +223,134 @@ body {
     padding: 10px;
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
+}
+
+.chat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* 我的页面按钮样式 */
+.my-page-button {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.my-page-button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 用户信息抽屉样式 */
+.drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #1a1a1a;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.drawer.active {
+    transform: translateX(0);
+}
+
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: #667eea;
+    color: white;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.drawer-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.close-drawer-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+}
+
+.close-drawer-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.drawer-content {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-avatar-large {
+    margin-top: 20px;
+}
+
+.user-avatar-large img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #667eea;
+}
+
+.user-info-item {
+    width: 100%;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+}
+
+.info-label {
+    font-weight: bold;
+    color: #666;
+}
+
+/* 抽屉遮罩层 */
+.drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: none;
+}
+
+.drawer-overlay.active {
+    display: block;
 }
 
 .chat-header h2 {
@@ -469,6 +681,106 @@ body {
     display: none;
 }
 
+/* 数字键盘布局样式 */
+#keypad-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.room-input {
+    font-size: 3rem;
+    font-weight: bold;
+    letter-spacing: 5px;
+    text-align: center;
+    margin: 30px 0;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    min-width: 300px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    width: 100%;
+    max-width: 350px;
+    margin: 20px 0;
+}
+
+.key {
+    padding: 20px;
+    font-size: 1.5rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.key:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.key:active {
+    transform: scale(0.95);
+}
+
+.key[data-value="clear"] {
+    background-color: rgba(255, 102, 102, 0.3);
+}
+
+.key[data-value="clear"]:hover {
+    background-color: rgba(255, 102, 102, 0.5);
+}
+
+.key[data-value="enter"] {
+    background-color: rgba(102, 255, 102, 0.3);
+}
+
+.key[data-value="enter"]:hover {
+    background-color: rgba(102, 255, 102, 0.5);
+}
+
+/* 自定义操作菜单样式 */
+.room-action-menu {
+    background-color: rgba(0, 0, 0, 0.9);
+    border-radius: 10px;
+    padding: 5px 0;
+    z-index: 1000;
+    min-width: 150px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.menu-item {
+    padding: 12px 20px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    text-align: center;
+}
+
+.menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.menu-item.delete-room:hover {
+    background-color: rgba(255, 0, 0, 0.2);
+    color: #ffcccc;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     #clock-container h1 {
@@ -488,9 +800,23 @@ body {
         margin: 20px;
     }
     
+    .room-list {
+        grid-template-columns: 1fr; /* 小屏幕上单列显示 */
+    }
+    
     .room-input {
         font-size: 2.5rem;
         min-width: 250px;
+    }
+    
+    .keypad {
+        gap: 10px;
+    }
+    
+    .key {
+        padding: 15px;
+        font-size: 1.2rem;
+        min-height: 50px;
     }
     
     .messages {

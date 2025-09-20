@@ -22,6 +22,7 @@ const DOM = {
     userAvatar: document.getElementById('user-avatar'),
     changeAvatar: document.getElementById('change-avatar-btn'),
     saveUserInfo: document.getElementById('save-user-info-btn'),
+    registerLink: document.getElementById('register-link'),
     myPageBtn: document.getElementById('my-page-btn'),
     userInfoDrawer: document.getElementById('user-info-drawer'),
     closeDrawer: document.getElementById('close-drawer'),
@@ -33,7 +34,8 @@ const DOM = {
     drawerUserAge: document.getElementById('drawer-user-age'),
     roomList: document.getElementById('room-list'),
     addNewRoom: document.getElementById('add-new-room'),
-    roomListPlaceholder: document.querySelector('.room-list-placeholder')
+    roomListPlaceholder: document.querySelector('.room-list-placeholder'),
+    editUserInfoBtn: document.getElementById('edit-user-info-btn')
 };
 
 // 全局状态
@@ -49,10 +51,12 @@ const state = {
     goEasy: null,
     currentChannel: null,
     weekDays: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
-    // 用于存储Supabase用户ID
-    userId: null,
+    // 用于存储Supabase用户ID（通过匿名登录获取）
+    userId: localStorage.getItem('supabase_user_id') || null,
     // 存储进入过的聊天室列表
-    visitedRooms: []
+    visitedRooms: [],
+    // 用户是否已注册
+    isRegistered: false
 };
 
 // 初始化Supabase客户端
@@ -63,73 +67,165 @@ const supabaseConfig = {
 };
 
 // 初始化Supabase客户端
-// 改进的初始化逻辑，添加详细调试日志和认证配置
 let supabase = null;
 
 // 检查并初始化Supabase
 function initializeSupabase() {
-    console.log('开始初始化Supabase客户端...');
-    
-    // 检查window对象是否存在
-    if (typeof window === 'undefined') {
-        console.log('window对象不存在，无法初始化Supabase');
-        return null;
+    try {
+        // 检查是否可以创建客户端
+        if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+            const client = window.supabase.createClient(supabaseConfig.url, supabaseConfig.key);
+            
+            // 验证客户端对象的完整性
+            if (client.auth && typeof client.auth.signInAnonymously === 'function') {
+                return client;
+            }
+        }
+    } catch (error) {
+        console.error('创建Supabase客户端失败:', error.message);
     }
     
-    // 检查是否加载了Supabase客户端库
-    if (!window.supabase || !window.supabase.createClient) {
-        console.error('未找到Supabase客户端库或createClient函数');
-        // 显示错误信息给用户
-        setTimeout(() => {
-            alert('Supabase客户端库加载失败，将使用本地存储模式');
-        }, 1000);
-        return null;
-    }
+    return null;
+}
+
+// 匿名登录函数
+async function signInAnonymously() {
+    if (!isSupabaseAvailable()) return null;
     
     try {
-        // 确保使用正确的方式创建Supabase客户端
-        // 对于v2版本，我们使用window.supabase.createClient并添加auth选项
-        const client = window.supabase.createClient(supabaseConfig.url, supabaseConfig.key, {
-            auth: {
-                persistSession: false,
-                autoRefreshToken: false
-            },
-            global: {
-                headers: {
-                    // 明确设置API密钥头，确保每个请求都包含认证信息
-                    'apikey': supabaseConfig.key,
-                    'Authorization': `Bearer ${supabaseConfig.key}`,
-                    // 添加Content-Type和Accept头以避免406 Not Acceptable错误
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
+        const { data, error } = await supabase.auth.signInAnonymously();
+        
+        if (error) {
+            // 简化错误处理，保留重要错误类型提示
+            if (error.code === '422') {
+                alert('登录失败：请确认匿名登录功能已在Supabase控制台启用');
+            } else if (error.message && error.message.includes('signInAnonymously is not enabled')) {
+                alert('匿名登录功能未启用，请联系管理员');
             }
-        });
+            
+            return null;
+        }
         
-        console.log('Supabase客户端创建成功，客户端对象:', client);
-        console.log('API密钥配置检查:', supabaseConfig.key ? '已配置' : '未配置');
-        console.log('项目URL检查:', supabaseConfig.url ? '已配置' : '未配置');
+        if (data.user) {
+            console.log('匿名登录成功，用户ID:', data.user.id);
+            state.userId = data.user.id; // 使用Supabase的用户ID作为应用内用户ID
+            
+            // 存储用户ID到localStorage以便跨会话使用
+            localStorage.setItem('supabase_user_id', data.user.id);
+            
+            return data.user;
+        }
         
-        return client;
+        return null;
     } catch (error) {
-        console.error('创建Supabase客户端时发生错误:', error);
-        console.error('错误类型:', error.name);
-        console.error('错误信息:', error.message);
-        // 显示错误信息给用户
-        setTimeout(() => {
-            alert('创建Supabase连接失败: ' + (error.message || '未知错误'));
-        }, 1000);
+        console.error('匿名登录时发生异常:', error);
+        console.error('异常类型:', error.name);
+        console.error('异常堆栈:', error.stack);
+        
+        // 处理网络异常
+        if (error.name === 'TypeError' && error.message && error.message.includes('Failed to fetch')) {
+            console.error('网络连接错误：无法连接到Supabase服务器');
+            alert('网络连接失败，请检查您的网络设置');
+        }
+        
         return null;
     }
 }
 
-// 初始化Supabase客户端
-console.log('检查是否加载了Supabase客户端库...');
-console.log('window对象:', typeof window !== 'undefined');
-console.log('全局createClient:', typeof createClient !== 'undefined' ? '已定义' : '未定义');
-console.log('window.createClient:', window && window.createClient ? '已定义' : '未定义');
-console.log('window.supabase:', window && window.supabase ? '已定义' : '未定义');
+// 检查会话状态
+async function checkSession() {
+    if (!isSupabaseAvailable()) return null;
+    
+    try {
+        const { data } = await supabase.auth.getSession();
+        
+        if (data.session) {
+            state.userId = data.session.user.id;
+            return data.session.user;
+        }
+        
+        // 如果没有会话，尝试匿名登录
+        return await signInAnonymously();
+    } catch (error) {
+        console.error('检查会话状态失败:', error.message);
+        return null;
+    }
+}
 
+// 用户登出函数
+async function signOut() {
+    if (!isSupabaseAvailable()) {
+        console.log('Supabase不可用，无法进行登出操作');
+        // 清除本地数据
+        localStorage.removeItem('supabase_user_id');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('gender');
+        localStorage.removeItem('region');
+        localStorage.removeItem('age');
+        
+        // 重置状态
+        resetUserState();
+        
+        // 显示用户信息设置界面
+        showUserInfoScreen();
+        return;
+    }
+    
+    try {
+        console.log('尝试登出...');
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+            console.error('登出失败:', error);
+            alert('登出失败: ' + (error.message || '未知错误'));
+            return;
+        }
+        
+        console.log('登出成功');
+        
+        // 清除本地数据
+        localStorage.removeItem('supabase_user_id');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('gender');
+        localStorage.removeItem('region');
+        localStorage.removeItem('age');
+        
+        // 重置状态
+        resetUserState();
+        
+        // 显示用户信息设置界面
+        showUserInfoScreen();
+    } catch (error) {
+        console.error('登出时发生异常:', error);
+        alert('登出失败，请重试');
+    }
+}
+
+// 重置用户状态
+function resetUserState() {
+    state.userId = null;
+    state.currentUserName = `用户${Math.floor(Math.random() * 10000)}`;
+    state.currentUserGender = 'male';
+    state.currentUserRegion = '北京';
+    state.currentUserAge = 25;
+    state.currentUserAvatar = '';
+    
+    // 重置DOM元素
+    if (DOM.userName) DOM.userName.value = state.currentUserName;
+    if (DOM.userRegion) DOM.userRegion.value = state.currentUserRegion;
+    if (DOM.userAge) DOM.userAge.value = state.currentUserAge;
+    
+    if (DOM.genderInputs) {
+        DOM.genderInputs.forEach(input => {
+            input.checked = input.value === state.currentUserGender;
+        });
+    }
+    
+    // 生成新的随机头像
+    generateRandomAvatar();
+}
+
+// 初始化Supabase客户端
 supabase = initializeSupabase();
 
 // 检查Supabase是否可用的函数
@@ -137,105 +233,23 @@ function isSupabaseAvailable() {
     return supabase !== null;
 }
 
-// 添加详细的测试函数，验证Supabase连接
+// 测试Supabase连接的简单函数
 async function testSupabaseConnection() {
-    if (!isSupabaseAvailable()) {
-        console.log('Supabase不可用，跳过连接测试');
-        return false;
-    }
-    
-    console.log('开始测试Supabase连接...');
-    console.log('Supabase客户端对象:', typeof supabase === 'object' ? '已创建' : '未创建');
+    if (!isSupabaseAvailable()) return false;
     
     try {
-        // 尝试一个简单的查询来测试连接
-        // 注意：根据Supabase错误提示，表名应为'user'而非'users'
-        console.log('正在执行查询：from(\'user\').select(\'*\').limit(1)');
-        
-        const { data, error } = await supabase.from('user').select('*').limit(1);
+        // 执行简单的查询测试连接
+        const { error } = await supabase.from('user').select('*').limit(1);
         
         if (error) {
-            console.error('Supabase连接测试失败:', error);
-            console.error('错误代码:', error.code);
-            console.error('错误详情:', error.details);
-            console.error('错误提示:', error.hint);
-            console.error('完整错误对象:', JSON.stringify(error));
-            
-            // 针对不同类型的错误提供更具体的反馈和建议
-            if (error.code === 'PGRST205' || error.message && error.message.includes('could not find the table')) {
-                console.error('表不存在错误：请确保在Supabase控制台创建了user表');
-                console.error('建议：登录Supabase控制台，在公共架构下创建名为user的表，包含必要的字段');
-            } else if (error.code === '42501' || error.message && error.message.includes('permission denied')) {
-                console.error('权限错误：API密钥可能没有足够的权限访问该表或违反了行级安全策略');
-                console.error('具体错误：', error.message);
-                console.error('建议：1. 检查Supabase项目中的API密钥权限设置');
-                console.error('建议：2. 登录Supabase控制台，确保为user表配置了适当的行级安全策略');
-                console.error('建议：3. 确认匿名用户(anon key)有足够的权限进行操作');
-                console.error('建议：4. 可以暂时禁用行级安全策略进行测试');
-            } else if (error.code === '404' || error.message && error.message.includes('not found')) {
-                console.error('资源不存在错误：可能是URL错误或表结构不匹配');
-                console.error('建议：检查Supabase项目URL是否正确，并确保表结构正确');
-            } else if (error.code === 'ECONNREFUSED' || error.message && error.message.includes('connection refused')) {
-                console.error('连接被拒绝：无法连接到Supabase服务器');
-                console.error('建议：检查网络连接和Supabase项目状态');
-            } else if (error.code === '401' || error.message && error.message.includes('Unauthorized')) {
-                console.error('未授权错误：API密钥无效或权限不足');
-                console.error('错误详情：可能是API密钥格式错误、过期或没有足够的权限');
-                console.error('建议：1. 检查Supabase控制台中的API密钥是否正确');
-                console.error('建议：2. 确保使用的是anon/public密钥，而不是service_role密钥');
-                console.error('建议：3. 确认API密钥包含在请求头中');
-            } else if (error.message && error.message.includes('No API key found in request')) {
-                console.error('API密钥未找到：请求中没有包含API密钥');
-                console.error('建议：检查客户端初始化代码中的API密钥配置');
-            }
-            
+            // 简化错误处理，只记录关键错误信息
+            console.error('Supabase连接测试失败:', error.message);
             return false;
-        }
-        
-        console.log('Supabase连接测试成功');
-        console.log('查询结果数据:', data || '无数据返回但连接成功');
-        
-        // 额外验证：检查是否可以执行简单的插入和删除操作（可选）
-        try {
-            const testId = 'test_' + Date.now();
-            console.log('测试简单的数据插入操作...');
-            const { error: insertError } = await supabase.from('user').insert({
-                user_id: testId,
-                user_name: '测试用户',
-                gender: 'male',
-                region: '测试区域',
-                age: 25
-            });
-            
-            if (insertError) {
-                console.error('插入测试失败:', insertError);
-            } else {
-                console.log('插入测试成功，正在清理测试数据...');
-                await supabase.from('user').delete().eq('user_id', testId);
-                console.log('测试数据清理完成');
-            }
-        } catch (testError) {
-            console.error('执行额外测试时发生错误:', testError);
         }
         
         return true;
     } catch (error) {
-        console.error('Supabase连接测试时发生异常:', error);
-        console.error('异常类型:', error.name);
-        console.error('异常信息:', error.message);
-        console.error('完整异常对象:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        
-        // 提供一般性的连接问题建议
-        if (error.name === 'TypeError') {
-            console.error('类型错误：可能是Supabase客户端库加载问题或函数调用错误');
-            console.error('建议：检查Supabase客户端库的引入方式和版本');
-        } else if (error.message && error.message.includes('Failed to fetch')) {
-            console.error('网络错误：无法连接到Supabase服务器');
-            console.error('建议：检查网络连接和Supabase服务状态');
-        } else {
-            console.error('建议：检查网络连接、Supabase项目状态和API密钥配置');
-        }
-        
+        console.error('Supabase连接测试异常:', error.message);
         return false;
     }
 }
@@ -285,24 +299,10 @@ generateRandomAvatar = (gender = state.currentUserGender) => {
 
 // 从Supabase加载用户信息
 async function loadUserInfoFromSupabase() {
-    // 获取或生成用户ID
-    state.userId = generateUserId();
-    
-    // 检查Supabase是否可用
-    if (!isSupabaseAvailable()) {
-        console.log('Supabase不可用，使用本地存储');
-        return;
-    }
-    
-    console.log('尝试从Supabase加载用户信息，用户ID:', state.userId);
-    console.log('当前Supabase客户端:', typeof supabase === 'object' ? '可用' : '不可用');
+    if (!state.userId || !isSupabaseAvailable()) return;
     
     try {
         // 从Supabase加载用户信息
-        // 注意：根据Supabase错误提示，表名应为'user'而非'users'
-        console.log('正在执行查询：from(\'user\').select(\'*\').eq(\'user_id\', state.userId).single()');
-        
-        // 先执行查询不使用single()，避免结果为空时出错
         const { data: results, error } = await supabase
             .from('user')
             .select('*')
@@ -312,34 +312,12 @@ async function loadUserInfoFromSupabase() {
         const data = results && results.length > 0 ? results[0] : null;
         
         if (error) {
-            console.error('加载用户信息失败:', error);
-            console.error('错误代码:', error.code);
-            console.error('错误详情:', error.details);
-            console.error('错误提示:', error.hint);
-            console.error('完整错误对象:', JSON.stringify(error));
+            // 简化错误处理，保留关键错误处理逻辑
+            console.error('加载用户信息失败:', error.message);
             
-            // 针对不同类型的错误提供更具体的反馈和处理
+            // 针对重要错误类型切换到本地存储模式
             if (error.code === '401' || error.message && error.message.includes('Unauthorized')) {
-                console.error('未授权错误：API密钥无效或权限不足');
-                console.error('建议：检查Supabase项目中的API密钥配置');
-                // 将supabase设置为null，切换到本地存储模式
                 supabase = null;
-            } else if (error.code === '406' || error.message && error.message.includes('Not Acceptable')) {
-                console.error('406 (Not Acceptable)错误：服务器无法提供请求格式的数据');
-                console.error('建议：检查请求头中的Content-Type和Accept配置');
-                console.error('当前请求头配置:', supabase.config.global.headers);
-            } else if (error.message && error.message.includes('not found')) {
-                console.log('用户不存在于Supabase，将创建新用户');
-            } else if (error.message && error.message.includes('No API key found in request')) {
-                console.error('API密钥未找到：请求中没有包含API密钥');
-                console.error('建议：检查客户端初始化代码中的API密钥配置');
-                // 将supabase设置为null，切换到本地存储模式
-                supabase = null;
-            } else if (error.code === '42501' || error.message && error.message.includes('permission denied')) {
-                console.error('权限错误：违反了行级安全策略');
-                console.error('具体错误：', error.message);
-                console.error('建议：1. 登录Supabase控制台，为user表配置适当的行级安全策略');
-                console.error('建议：2. 确认匿名用户(anon key)有足够的权限进行操作');
             }
             
             // 生成随机头像
@@ -348,8 +326,6 @@ async function loadUserInfoFromSupabase() {
         }
         
         if (data) {
-            console.log('从Supabase获取到的用户数据:', data);
-            
             // 加载用户信息到状态
             state.currentUserName = data.user_name || state.currentUserName;
             state.currentUserGender = data.gender || state.currentUserGender;
@@ -361,22 +337,12 @@ async function loadUserInfoFromSupabase() {
             if (!state.currentUserAvatar) {
                 generateRandomAvatar(state.currentUserGender);
             }
-            
-            console.log('用户信息已从Supabase加载完成');
-            
-            // 检查是否已经设置了用户信息，如果已设置，则直接显示时钟界面
-            if (state.currentUserName !== '' && state.currentUserName !== `用户${Math.floor(Math.random() * 10000)}`) {
-                showClockScreen();
-            }
         } else {
-            console.log('用户不存在，将创建新用户');
+            // 生成随机头像
             generateRandomAvatar();
         }
     } catch (error) {
-        console.error('Supabase加载用户信息时发生错误:', error);
-        console.error('错误类型:', error.name);
-        console.error('错误信息:', error.message);
-        console.error('完整异常对象:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        console.error('加载用户信息异常:', error.message);
         
         // 如果发生异常，将supabase设置为null，切换到本地存储模式
         supabase = null;
@@ -592,15 +558,12 @@ function renderRoomList() {
         roomNumber.className = 'room-number';
         roomNumber.textContent = room.number;
         
-        // 如果有备注，显示备注
-        let displayText = room.number;
-        if (room.remark && room.remark.trim()) {
+        if (room.remark?.trim()) {
             const remarkEl = document.createElement('div');
             remarkEl.className = 'room-remark';
             remarkEl.textContent = room.remark;
             roomContent.appendChild(roomNumber);
             roomContent.appendChild(remarkEl);
-            displayText = room.remark;
         } else {
             roomContent.appendChild(roomNumber);
         }
@@ -612,9 +575,7 @@ function renderRoomList() {
         const lastVisited = document.createElement('div');
         lastVisited.className = 'last-visited';
         const date = new Date(room.lastVisited);
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        lastVisited.textContent = `上次访问: ${hours}:${minutes}`;
+        lastVisited.textContent = `上次访问: ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
         
         // 消息数量
         const messageCount = document.createElement('div');
@@ -629,10 +590,8 @@ function renderRoomList() {
         
         // 添加点击事件
         roomItem.addEventListener('click', () => {
-            // 如果是长按操作，则不进入聊天室或用户信息页面
-            if (isLongPress) {
-                // 重置长按标记
-                isLongPress = false;
+            if (window.isLongPress) {
+                window.isLongPress = false;
                 return;
             }
             
@@ -646,8 +605,6 @@ function renderRoomList() {
         
         // 长按事件相关变量
         let longPressTimer;
-        const longPressDuration = 800; // 长按触发时间（毫秒）
-        let isLongPress = false; // 标记是否是长按操作
         
         // 鼠标按下/触摸开始事件
         roomItem.addEventListener('mousedown', startLongPress);
@@ -659,24 +616,17 @@ function renderRoomList() {
         roomItem.addEventListener('touchend', cancelLongPress);
         
         function startLongPress() {
-            isLongPress = false;
+            window.isLongPress = false;
             longPressTimer = setTimeout(() => {
-                // 标记为长按操作
-                isLongPress = true;
+                window.isLongPress = true;
                 cancelLongPress();
-                
-                // 创建自定义操作菜单
                 createActionMenu(room);
-            }, longPressDuration);
+            }, 800);
         }
         
-        // 创建操作菜单
         function createActionMenu(room) {
             // 移除可能存在的旧菜单
-            const oldMenu = document.querySelector('.room-action-menu');
-            if (oldMenu) {
-                oldMenu.remove();
-            }
+            document.querySelector('.room-action-menu')?.remove();
             
             // 创建菜单元素
             const menu = document.createElement('div');
@@ -687,7 +637,7 @@ function renderRoomList() {
                 <div class="menu-item cancel">取消</div>
             `;
             
-            // 设置菜单位置（相对于被长按的元素）
+            // 设置菜单位置
             const rect = roomItem.getBoundingClientRect();
             menu.style.position = 'fixed';
             menu.style.left = `${rect.left + rect.width / 2}px`;
@@ -699,10 +649,8 @@ function renderRoomList() {
             
             // 添加事件监听器
             menu.querySelector('.edit-remark').addEventListener('click', () => {
-                const currentRemark = room.remark || '';
-                const newRemark = prompt('请输入聊天室备注：', currentRemark);
-                
-                if (newRemark !== null) { // 用户点击了确定按钮
+                const newRemark = prompt('请输入聊天室备注：', room.remark || '');
+                if (newRemark !== null) {
                     updateRoomRemark(room.number, newRemark.trim());
                 }
                 menu.remove();
@@ -713,9 +661,7 @@ function renderRoomList() {
                 menu.remove();
             });
             
-            menu.querySelector('.cancel').addEventListener('click', () => {
-                menu.remove();
-            });
+            menu.querySelector('.cancel').addEventListener('click', () => menu.remove());
             
             // 点击页面其他地方关闭菜单
             function closeMenuOnClickOutside(event) {
@@ -801,7 +747,6 @@ showInputScreen = () => {
     DOM.inputContainer.classList.remove('hidden');
     DOM.chatContainer.classList.add('hidden');
     
-    // 加载并渲染聊天室列表
     loadVisitedRooms();
     renderRoomList();
 };
@@ -812,7 +757,7 @@ showClockScreen = () => {
     DOM.chatContainer.classList.add('hidden');
     DOM.userInfoContainer.classList.add('hidden');
     
-    // 确保抽屉是关闭的
+    // 关闭抽屉
     DOM.userInfoDrawer.classList.remove('active');
     DOM.drawerOverlay.classList.remove('active');
 };
@@ -829,7 +774,7 @@ showChatScreen = (roomNumber) => {
     DOM.userInfoContainer.classList.add('hidden');
     DOM.chatContainer.classList.remove('hidden');
     
-    // 确保抽屉是关闭的
+    // 关闭抽屉
     DOM.userInfoDrawer.classList.remove('active');
     DOM.drawerOverlay.classList.remove('active');
     
@@ -839,9 +784,7 @@ showChatScreen = (roomNumber) => {
     // 取消之前的订阅
     if (state.currentChannel) {
         state.goEasy.pubsub.unsubscribe({
-            channel: state.currentChannel,
-            onSuccess: () => console.log('成功取消之前的订阅:', state.currentChannel),
-            onFailed: (error) => console.log('取消之前的订阅失败:', error)
+            channel: state.currentChannel
         });
     }
     
@@ -853,19 +796,15 @@ showChatScreen = (roomNumber) => {
             const msgData = JSON.parse(message.content);
             // 只处理非自己发送的消息
             if (msgData.user !== state.currentUserName) {
-                if (!state.chatMessages[state.currentRoomNumber]) {
-                    state.chatMessages[state.currentRoomNumber] = [];
-                }
+                state.chatMessages[state.currentRoomNumber] = state.chatMessages[state.currentRoomNumber] || [];
                 state.chatMessages[state.currentRoomNumber].push(msgData);
                 saveChatMessages(state.currentRoomNumber);
                 displayMessages(state.currentRoomNumber);
             }
         },
         onSuccess: () => {
-            console.log('成功订阅频道:', state.currentChannel);
             sendRoomNotification('加入了聊天室');
-        },
-        onFailed: (error) => console.log('订阅频道失败:', error)
+        }
     });
     
     DOM.messageInput.value = '';
@@ -888,11 +827,52 @@ showUserInfoScreen = () => {
         input.checked = input.value === state.currentUserGender;
     });
     
+    // 根据用户注册状态控制游客提示的显示
+    const visitorNotice = document.querySelector('.visitor-notice');
+    if (visitorNotice) {
+        if (state.isRegistered) {
+            visitorNotice.classList.add('hidden');
+        } else {
+            visitorNotice.classList.remove('hidden');
+        }
+    }
+    
     // 生成并显示头像
     if (!state.currentUserAvatar) {
         generateRandomAvatar();
     } else {
         DOM.userAvatar.src = state.currentUserAvatar;
+    }
+    
+    // 检查是否已经有登出按钮，如果没有则添加
+    let logoutButton = document.getElementById('logoutButton');
+    if (!logoutButton) {
+        logoutButton = document.createElement('button');
+        logoutButton.id = 'logoutButton';
+        logoutButton.textContent = '退出登录';
+        logoutButton.style.position = 'absolute';
+        logoutButton.style.top = '10px';
+        logoutButton.style.right = '10px';
+        logoutButton.style.padding = '8px 16px';
+        logoutButton.style.backgroundColor = '#f44336';
+        logoutButton.style.color = 'white';
+        logoutButton.style.border = 'none';
+        logoutButton.style.borderRadius = '4px';
+        logoutButton.style.cursor = 'pointer';
+        
+        // 添加点击事件
+        logoutButton.addEventListener('click', async () => {
+            // 确认对话框
+            if (confirm('确定要退出登录吗？')) {
+                await signOut();
+            }
+        });
+        
+        // 添加到用户信息容器
+        DOM.userInfoContainer.appendChild(logoutButton);
+    } else {
+        // 如果已有登出按钮，确保它可见
+        logoutButton.style.display = 'block';
     }
 };
 
@@ -936,16 +916,14 @@ saveUserInfo = async () => {
 
 // 保存用户信息到Supabase
 async function saveUserInfoToSupabase() {
-    // 确保有用户ID
+    // 确保已经通过匿名登录获取了用户ID
     if (!state.userId) {
-        state.userId = generateUserId();
+        const user = await checkSession();
+        if (!user) return;
     }
     
     // 检查Supabase是否可用
-    if (!isSupabaseAvailable()) {
-        console.log('Supabase不可用，用户信息仅保存在本地');
-        return;
-    }
+    if (!isSupabaseAvailable()) return;
     
     try {
         // 准备要保存的数据
@@ -959,82 +937,22 @@ async function saveUserInfoToSupabase() {
             updated_at: new Date().toISOString()
         };
         
-        console.log('准备保存到Supabase的用户数据:', userData);
-        
         // 保存用户信息到Supabase
-        // 注意：根据Supabase错误提示，表名应为'user'而非'users'
-        console.log('正在执行upsert操作：from(\'user\').upsert(userData).select()');
-        
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('user')
             .upsert(userData)
             .select();
         
         if (error) {
-            console.error('保存用户信息到Supabase失败:', error);
-            console.error('错误代码:', error.code);
-            console.error('错误详情:', error.details);
-            console.error('错误提示:', error.hint);
-            console.error('完整错误对象:', JSON.stringify(error));
-            
-            // 针对不同类型的错误提供更具体的反馈和处理
-            if (error.code === '401' || error.message && error.message.includes('Unauthorized')) {
-                console.error('未授权错误：API密钥无效或权限不足');
-                console.error('建议：检查Supabase项目中的API密钥配置');
-                // 将supabase设置为null，切换到本地存储模式
-                supabase = null;
-            } else if (error.code === '406' || error.message && error.message.includes('Not Acceptable')) {
-                console.error('406 (Not Acceptable)错误：服务器无法提供请求格式的数据');
-                console.error('建议：检查请求头中的Content-Type和Accept配置');
-                console.error('当前请求头配置:', supabase.config.global.headers);
-            } else if (error.code === '42501' || error.message && error.message.includes('permission denied')) {
-                console.error('权限错误：违反了行级安全策略');
-                console.error('具体错误：', error.message);
-                console.error('建议：1. 登录Supabase控制台，为user表配置适当的行级安全策略');
-                console.error('建议：2. 确认匿名用户(anon key)有足够的权限进行操作');
-                // 将supabase设置为null，切换到本地存储模式
-                supabase = null;
-            } else if (error.message && error.message.includes('timestamp')) {
-                console.error('时间戳字段错误：可能是字段名称或数据类型不匹配');
-                // 尝试不包含updated_at字段
-                try {
-                    const simplifiedData = {...userData};
-                    delete simplifiedData.updated_at;
-                    console.log('尝试不包含updated_at字段重新保存:', simplifiedData);
-                    
-                    const { data: simplifiedDataResult, error: simplifiedError } = await supabase
-                        .from('user')
-                        .upsert(simplifiedData)
-                        .select();
-                    
-                    if (simplifiedError) {
-                        console.error('简化数据后保存仍然失败:', simplifiedError);
-                        if (simplifiedError.code === '401') {
-                            console.error('简化数据后仍发生未授权错误，切换到本地存储模式');
-                            supabase = null;
-                        }
-                    } else {
-                        console.log('简化数据后保存成功');
-                    }
-                } catch (innerError) {
-                    console.error('简化数据后尝试保存时发生异常:', innerError);
-                    supabase = null;
-                }
-            } else if (error.message && error.message.includes('No API key found in request')) {
-                console.error('API密钥未找到：请求中没有包含API密钥');
-                console.error('建议：检查客户端初始化代码中的API密钥配置');
+            // 针对常见错误类型进行处理
+            if (error.code === '401' || error.code === '42501' || 
+                error.message?.includes('Unauthorized') || 
+                error.message?.includes('No API key found')) {
                 // 将supabase设置为null，切换到本地存储模式
                 supabase = null;
             }
-        } else {
-            console.log('用户信息已保存到Supabase', data);
         }
     } catch (error) {
-        console.error('Supabase保存用户信息时发生错误:', error);
-        console.error('错误类型:', error.name);
-        console.error('错误信息:', error.message);
-        console.error('完整异常对象:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        
         // 如果发生异常，将supabase设置为null，切换到本地存储模式
         supabase = null;
     }
@@ -1050,8 +968,7 @@ updateRoomNumber = (digit) => {
     if (state.currentRoomNumber.length >= 6) {
         state.currentRoomNumber = state.currentRoomNumber.substring(1) + digit;
     } else {
-        state.currentRoomNumber = state.currentRoomNumber.substring(state.currentRoomNumber.length - Math.min(state.currentRoomNumber.length, 5)) + digit;
-        state.currentRoomNumber = state.currentRoomNumber.padStart(6, '0');
+        state.currentRoomNumber = (state.currentRoomNumber + digit).slice(-6).padStart(6, '0');
     }
     DOM.roomNumber.textContent = state.currentRoomNumber;
 };
@@ -1068,10 +985,8 @@ handleKeyPress = (value) => {
             break;
         case 'enter':
             if (state.currentRoomNumber.length === 6 && /^\d+$/.test(state.currentRoomNumber)) {
-                // 添加到访问过的聊天室列表
                 addVisitedRoom(state.currentRoomNumber);
                 
-                // 移除数字键盘（如果存在）
                 const keypadContainer = document.getElementById('keypad-container');
                 if (keypadContainer) {
                     keypadContainer.remove();
@@ -1079,7 +994,6 @@ handleKeyPress = (value) => {
                     DOM.addNewRoom.style.display = 'block';
                 }
                 
-                // 如果已经有有效的用户信息，直接进入聊天室
                 if (state.currentUserName && state.currentUserName !== `用户${Math.floor(Math.random() * 10000)}`) {
                     showChatScreen(state.currentRoomNumber);
                 } else {
@@ -1106,9 +1020,7 @@ sendRoomNotification = (action) => {
     
     state.goEasy.pubsub.publish({
         channel: state.currentChannel,
-        message: JSON.stringify(notification),
-        onSuccess: () => console.log('通知发送成功'),
-        onFailed: (error) => console.log('通知发送失败:', error)
+        message: JSON.stringify(notification)
     });
 };
 
@@ -1152,14 +1064,7 @@ displayMessages = (roomNumber) => {
             avatarElement.classList.add('message-avatar');
             
             // 设置头像源
-            if (message.avatar) {
-                avatarElement.src = message.avatar;
-            } else if (isOwnMessage) {
-                avatarElement.src = state.currentUserAvatar;
-            } else {
-                avatarElement.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${message.user}`;
-            }
-            
+            avatarElement.src = message.avatar || (isOwnMessage ? state.currentUserAvatar : `https://api.dicebear.com/7.x/avataaars/svg?seed=${message.user}`);
             avatarElement.alt = `${message.user}'s avatar`;
             
             // 创建消息内容容器
@@ -1169,16 +1074,14 @@ displayMessages = (roomNumber) => {
             // 添加消息文本
             const textElement = document.createElement('div');
             textElement.textContent = message.text;
+            contentElement.appendChild(textElement);
             
             // 添加时间元素（自己消息的时间）
             if (isOwnMessage) {
                 const timeElement = document.createElement('div');
                 timeElement.classList.add('time');
                 timeElement.textContent = message.time;
-                contentElement.appendChild(textElement);
                 contentElement.appendChild(timeElement);
-            } else {
-                contentElement.appendChild(textElement);
             }
             
             // 添加头像和内容到消息元素
@@ -1217,16 +1120,14 @@ sendMessage = () => {
             channel: state.currentChannel,
             message: JSON.stringify(message),
             onSuccess: () => {
-                if (!state.chatMessages[state.currentRoomNumber]) {
-                    state.chatMessages[state.currentRoomNumber] = [];
-                }
+                // 简化消息数组初始化
+                state.chatMessages[state.currentRoomNumber] = state.chatMessages[state.currentRoomNumber] || [];
                 state.chatMessages[state.currentRoomNumber].push(message);
                 saveChatMessages(state.currentRoomNumber);
                 displayMessages(state.currentRoomNumber);
                 DOM.messageInput.value = '';
             },
             onFailed: (error) => {
-                console.log('消息发送失败:', error);
                 alert('消息发送失败，请检查网络连接');
             }
         });
@@ -1247,72 +1148,148 @@ setupEventListeners = () => {
     });
     DOM.time.addEventListener('touchend', handleLongPressEnd);
     
-    // 我的页面按钮点击事件
-    if (DOM.myPageBtn) {
-        DOM.myPageBtn.addEventListener('click', toggleUserInfoDrawer);
-    }
+    // 页面交互事件
+    DOM.myPageBtn.addEventListener('click', toggleUserInfoDrawer);
+    DOM.addNewRoom.addEventListener('click', showAddRoomScreen);
+    DOM.closeDrawer.addEventListener('click', toggleUserInfoDrawer);
+    DOM.drawerOverlay.addEventListener('click', toggleUserInfoDrawer);
+    DOM.backToClock.addEventListener('click', showClockScreen);
     
-    // 添加新聊天室按钮点击事件
-    if (DOM.addNewRoom) {
-        DOM.addNewRoom.addEventListener('click', showAddRoomScreen);
-    }
+    // 注册链接点击事件
+    DOM.registerLink.addEventListener('click', (e) => {
+        e.preventDefault(); // 阻止默认的链接行为
+        showEmailRegistrationForm(); // 显示邮箱注册表单
+    });
     
-    // 关闭抽屉按钮点击事件
-    if (DOM.closeDrawer) {
-        DOM.closeDrawer.addEventListener('click', toggleUserInfoDrawer);
-    }
-    
-    // 抽屉遮罩层点击事件
-    if (DOM.drawerOverlay) {
-        DOM.drawerOverlay.addEventListener('click', toggleUserInfoDrawer);
-    }
-    
-    // 页面导航按钮
-    if (DOM.backToClock) {
-        DOM.backToClock.addEventListener('click', showClockScreen);
-    }
-    
-    if (DOM.leaveChat) {
-        DOM.leaveChat.addEventListener('click', () => {
-            if (state.currentChannel) {
-                sendRoomNotification('离开了聊天室');
-                
-                state.goEasy.pubsub.unsubscribe({
-                    channel: state.currentChannel,
-                    onSuccess: () => {
-                        state.currentChannel = null;
-                        showClockScreen();
-                    },
-                    onFailed: (error) => {
-                        state.currentChannel = null;
-                        showClockScreen();
-                    }
-                });
-            } else {
-                showClockScreen();
+    // 邮箱注册功能
+    async function emailSignUp(email, password) {
+        if (!isSupabaseAvailable()) {
+            alert('注册功能不可用，请稍后再试');
+            return null;
+        }
+        
+        try {
+            const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: password
+            });
+            
+            if (error) {
+                console.error('注册失败:', error.message);
+                alert(`注册失败：${error.message}`);
+                return null;
             }
-        });
+            
+            // 注册成功，发送确认邮件
+            alert('注册成功！一封确认邮件已发送到您的邮箱，请查收并确认后登录。');
+            
+            // 清除本地存储的匿名用户ID
+            localStorage.removeItem('supabase_user_id');
+            
+            // 更新用户状态为已注册
+            state.isRegistered = true;
+            
+            return data;
+        } catch (err) {
+            console.error('注册过程中发生异常:', err.message);
+            alert('注册过程中发生错误，请稍后再试');
+            return null;
+        }
     }
+    
+    // 显示邮箱注册表单
+    function showEmailRegistrationForm() {
+        const email = prompt('请输入您的邮箱地址:');
+        
+        if (!email || !isValidEmail(email)) {
+            alert('请输入有效的邮箱地址');
+            return;
+        }
+        
+        const password = prompt('请设置密码（至少6位字符）:');
+        
+        if (!password || password.length < 6) {
+            alert('密码至少需要6位字符');
+            return;
+        }
+        
+        const confirmPassword = prompt('请再次输入密码以确认:');
+        
+        if (password !== confirmPassword) {
+            alert('两次输入的密码不一致');
+            return;
+        }
+        
+        // 调用邮箱注册函数
+        emailSignUp(email, password);
+    }
+    
+    // 验证邮箱格式
+    function isValidEmail(email) {
+        const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+        return emailRegex.test(email);
+    }
+    
+    // 修改个人信息按钮事件
+    DOM.editUserInfoBtn.addEventListener('click', () => {
+        // 关闭抽屉
+        DOM.userInfoDrawer.classList.remove('active');
+        DOM.drawerOverlay.classList.remove('active');
+        
+        // 显示用户信息设置页面
+        showUserInfoScreen();
+        
+        // 填充当前用户信息到表单
+        if (DOM.userName) DOM.userName.value = state.currentUserName || '';
+        if (DOM.userRegion) DOM.userRegion.value = state.currentUserRegion || '北京';
+        if (DOM.userAge) DOM.userAge.value = state.currentUserAge || '';
+        
+        // 设置性别单选按钮
+        if (DOM.genderInputs) {
+            DOM.genderInputs.forEach(radio => {
+                if (radio.value === state.currentUserGender) {
+                    radio.checked = true;
+                }
+            });
+        }
+        
+        // 设置头像
+        if (DOM.userAvatar) {
+            DOM.userAvatar.src = state.currentUserAvatar || 'https://via.placeholder.com/120';
+        }
+    });
+    
+    // 离开聊天室处理
+    DOM.leaveChat.addEventListener('click', () => {
+        if (state.currentChannel) {
+            sendRoomNotification('离开了聊天室');
+            
+            state.goEasy.pubsub.unsubscribe({
+                channel: state.currentChannel,
+                onSuccess: () => {
+                    state.currentChannel = null;
+                    showClockScreen();
+                },
+                onFailed: () => {
+                    state.currentChannel = null;
+                    showClockScreen();
+                }
+            });
+        } else {
+            showClockScreen();
+        }
+    });
     
     // 数字键盘按键
     DOM.keys.forEach(key => {
-        key.addEventListener('click', () => {
-            handleKeyPress(key.dataset.value);
-        });
+        key.addEventListener('click', () => handleKeyPress(key.dataset.value));
     });
     
     // 发送消息相关
-    if (DOM.sendMessage) {
-        DOM.sendMessage.addEventListener('click', sendMessage);
-    }
-    
-    if (DOM.messageInput) {
-        DOM.messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-    }
+    DOM.sendMessage.addEventListener('click', sendMessage);
+    DOM.messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
     
     // 用户信息相关
     DOM.genderInputs.forEach(input => {
@@ -1322,19 +1299,15 @@ setupEventListeners = () => {
         });
     });
     
-    if (DOM.changeAvatar) {
-        DOM.changeAvatar.addEventListener('click', () => {
-            const selectedGender = document.querySelector('input[name="gender"]:checked').value;
-            generateRandomAvatar(selectedGender);
-        });
-    }
+    DOM.changeAvatar.addEventListener('click', () => {
+        const selectedGender = document.querySelector('input[name="gender"]:checked').value;
+        generateRandomAvatar(selectedGender);
+    });
     
-    if (DOM.saveUserInfo) {
-        DOM.saveUserInfo.addEventListener('click', () => {
-            saveUserInfo();
-            showChatScreen(state.currentRoomNumber);
-        });
-    }
+    DOM.saveUserInfo.addEventListener('click', () => {
+        saveUserInfo();
+        showChatScreen(state.currentRoomNumber);
+    });
 };
 
 // 从localStorage加载用户信息
@@ -1367,16 +1340,7 @@ function loadUserInfoFromLocalStorage() {
 }
 
 // 获取用户地域
-getCurrentRegion = async () => {
-    try {
-        // 这里可以使用地理定位API或第三方服务获取用户地域
-        // 为简化示例，我们暂时保持默认值
-        return state.currentUserRegion;
-    } catch (error) {
-        console.log('获取地域信息失败:', error);
-        return state.currentUserRegion;
-    }
-};
+getCurrentRegion = async () => state.currentUserRegion;
 
 // 初始化应用
 async function initApp() {
@@ -1394,55 +1358,48 @@ async function initApp() {
         // 获取用户地域
         await getCurrentRegion();
         
-        // 测试Supabase连接
-        let supabaseConnected = false;
+        // 尝试Supabase相关操作
+        let anonymousUser = null;
         if (isSupabaseAvailable()) {
-            console.log('尝试测试Supabase连接...');
-            supabaseConnected = await testSupabaseConnection();
+            // 测试Supabase连接
+            const supabaseConnected = await testSupabaseConnection();
             
             // 如果连接测试失败，将supabase设置为null
             if (!supabaseConnected) {
-                console.log('Supabase连接不可用，切换到本地存储模式');
                 supabase = null;
+            } else {
+                // 如果Supabase可用，进行匿名登录
+                anonymousUser = await checkSession();
+                
+                // 从Supabase加载用户信息
+                if (anonymousUser) {
+                    try {
+                        await loadUserInfoFromSupabase();
+                    } catch (supabaseError) {
+                        console.error('加载用户信息失败:', supabaseError.message);
+                        // 即使加载失败，也继续执行
+                    }
+                }
             }
         }
         
-        // 从Supabase加载用户信息（仅当连接可用时）
-        let userInfoLoadedFromSupabase = false;
-        if (isSupabaseAvailable() && supabaseConnected) {
-            try {
-                console.log('尝试从Supabase加载用户信息...');
-                await loadUserInfoFromSupabase();
-                userInfoLoadedFromSupabase = true;
-                console.log('从Supabase加载用户信息成功');
-            } catch (supabaseError) {
-                console.error('从Supabase加载用户信息失败:', supabaseError);
-                // 即使加载失败，也继续执行，不中断应用启动
-                supabase = null;
-            }
-        }
-        
-        // 如果Supabase不可用或没有成功加载用户信息，从localStorage加载
-        if (!isSupabaseAvailable() || !userInfoLoadedFromSupabase || !state.currentUserName || state.currentUserName === `用户${Math.floor(Math.random() * 10000)}`) {
-            console.log('从localStorage加载用户信息...');
+        // 从localStorage加载用户信息
+        if (!isSupabaseAvailable() || !anonymousUser || !state.currentUserName || state.currentUserName === `用户${Math.floor(Math.random() * 10000)}`) {
             loadUserInfoFromLocalStorage();
             
-            // 如果没有从任何地方加载到用户信息，生成随机头像
+            // 生成随机头像
             if (!state.currentUserAvatar) {
                 generateRandomAvatar();
             }
             
-            // 只有当用户没有有效的用户名时才显示用户信息设置界面
-            if (!state.currentUserName || state.currentUserName === `用户${Math.floor(Math.random() * 10000)}`) {
-                showUserInfoScreen();
-            } else {
-                console.log('用户信息已存在，等待输入房间号...');
-            }
+            // 显示用户信息设置界面
+            showUserInfoScreen();
+        } else {
+            // 显示时钟界面
+            showClockScreen();
         }
     } catch (error) {
-        console.error('应用初始化失败:', error);
-        // 确保在错误情况下，即使Supabase不可用，应用也能正常运行
-        supabase = null;
+        console.error('应用初始化失败:', error.message);
         // 错误情况下，生成随机头像并显示用户信息界面
         generateRandomAvatar();
         showUserInfoScreen();

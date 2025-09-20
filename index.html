@@ -78,7 +78,14 @@
                 </div>
             </div>
             
-            <button id="save-user-info-btn" class="save-button">保存信息并进入聊天室</button>
+            <!-- 游客状态提示 -->
+            <div class="visitor-notice">
+                <p class="notice-text">💡 提示：您当前是随机游客，用户数据可能丢失，建议您<a href="#" id="register-link" class="register-link">注册</a>账号。</p>
+            </div>
+            
+            <div class="form-actions">
+                <button id="save-user-info-btn" class="save-button">保存信息并进入聊天室</button>
+            </div>
         </div>
     </div>
 
@@ -110,6 +117,11 @@
             <div class="user-info-item">
                 <span class="info-label">年龄：</span>
                 <span id="drawer-user-age"></span>
+            </div>
+            
+            <!-- 修改个人信息按钮 -->
+            <div class="drawer-actions">
+                <button id="edit-user-info-btn" class="edit-button">修改个人信息</button>
             </div>
         </div>
     </div>

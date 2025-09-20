@@ -676,6 +676,62 @@ body {
     padding: 12px;
 }
 
+/* 游客提示和表单操作区域样式 */
+.visitor-notice {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: rgba(255, 255, 0, 0.1);
+    border-radius: 10px;
+    border-left: 4px solid #FFFF00;
+}
+
+.notice-text {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+}
+
+.register-link {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: bold;
+    border-bottom: 1px dashed #3498db;
+    transition: all 0.2s ease;
+}
+
+.register-link:hover {
+    color: #2980b9;
+    border-bottom: 1px solid #2980b9;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.register-button {
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    background-color: rgba(52, 152, 219, 0.3);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+}
+
+.register-button:hover {
+    background-color: rgba(52, 152, 219, 0.4);
+}
+
+.form-actions .save-button {
+    margin-top: 0;
+    flex: 1;
+}
+
 /* 通用样式 */
 .hidden {
     display: none;

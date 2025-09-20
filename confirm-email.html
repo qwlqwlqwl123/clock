@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮箱确认 - 网页时钟聊天室</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 添加Supabase客户端库 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- 邮箱确认页面 -->
+    <div id="confirm-email-container" class="container">
+        <h1>邮箱确认</h1>
+        
+        <div class="confirm-email-form">
+            <div class="form-group">
+                <h2 id="confirm-status">正在验证您的邮箱...</h2>
+                <p id="confirm-message">请稍候，我们正在验证您的邮箱地址。</p>
+            </div>
+            
+            <div id="success-message" class="success-message hidden">
+                <h3>✅ 验证成功！</h3>
+                <p>您的邮箱已成功验证，现在可以登录并使用所有功能了。</p>
+            </div>
+            
+            <div id="error-message" class="error-message hidden">
+                <h3>❌ 验证失败</h3>
+                <p id="error-details">抱歉，验证链接无效或已过期。</p>
+            </div>
+            
+            <div class="form-actions">
+                <button id="login-btn" class="save-button hidden">登录账号</button>
+                <button id="resend-btn" class="register-button hidden">重新发送验证邮件</button>
+                <button id="back-btn" class="back-button">返回首页</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 初始化Supabase客户端
+        const supabaseConfig = {
+            url: 'https://ylzhswdqigqnrqfvtayi.supabase.co', // Supabase项目URL
+            key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsemhzd2RxaWdxbnJxZnZ0YXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxNTY2ODcsImV4cCI6MjA3MzczMjY4N30.GOESBmkHwI_nZNVtjJ5lC9P9EnGwbnpYy7l-HZX2HVE' // Supabase API密钥
+        };
+        
+        let supabase = null;
+        
+        // 初始化Supabase客户端
+        function initializeSupabase() {
+            if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+                try {
+                    const client = window.supabase.createClient(supabaseConfig.url, supabaseConfig.key);
+                    return client;
+                } catch (error) {
+                    console.error('创建Supabase客户端失败:', error.message);
+                    return null;
+                }
+            }
+            return null;
+        }
+        
+        // 检查Supabase是否可用
+        function isSupabaseAvailable() {
+            return supabase !== null;
+        }
+        
+        // 从URL中获取token
+        function getTokenFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('token') || '';
+        }
+        
+        // 处理邮箱确认
+        async function handleEmailConfirmation() {
+            supabase = initializeSupabase();
+            
+            const token = getTokenFromUrl();
+            
+            if (!token) {
+                document.getElementById('confirm-status').textContent = '链接无效';
+                document.getElementById('confirm-message').textContent = '确认链接无效或已损坏，请检查您收到的邮件。';
+                document.getElementById('error-message').classList.remove('hidden');
+                document.getElementById('resend-btn').classList.remove('hidden');
+                return;
+            }
+            
+            if (!isSupabaseAvailable()) {
+                document.getElementById('confirm-status').textContent = '服务暂时不可用';
+                document.getElementById('confirm-message').textContent = '验证服务暂时不可用，请稍后再试。';
+                document.getElementById('error-message').classList.remove('hidden');
+                document.getElementById('resend-btn').classList.remove('hidden');
+                return;
+            }
+            
+            try {
+                // 使用Supabase的verifyOtp方法验证邮箱
+                const { error } = await supabase.auth.verifyOtp({
+                    token: token,
+                    type: 'email'
+                });
+                
+                if (error) {
+                    console.error('邮箱验证失败:', error.message);
+                    document.getElementById('confirm-status').textContent = '验证失败';
+                    document.getElementById('confirm-message').textContent = '验证链接无效或已过期。';
+                    document.getElementById('error-details').textContent = error.message;
+                    document.getElementById('error-message').classList.remove('hidden');
+                    document.getElementById('resend-btn').classList.remove('hidden');
+                    return;
+                }
+                
+                // 验证成功
+                document.getElementById('confirm-status').textContent = '验证成功';
+                document.getElementById('confirm-message').textContent = '您的邮箱已成功验证！';
+                document.getElementById('success-message').classList.remove('hidden');
+                document.getElementById('login-btn').classList.remove('hidden');
+                
+            } catch (err) {
+                console.error('验证过程中发生异常:', err.message);
+                document.getElementById('confirm-status').textContent = '验证失败';
+                document.getElementById('confirm-message').textContent = '验证过程中发生错误，请稍后再试。';
+                document.getElementById('error-message').classList.remove('hidden');
+                document.getElementById('resend-btn').classList.remove('hidden');
+            }
+        }
+        
+        // 重新发送验证邮件
+        async function resendVerificationEmail() {
+            const email = prompt('请输入您注册时使用的邮箱地址:');
+            
+            if (!email) {
+                return;
+            }
+            
+            if (!isSupabaseAvailable()) {
+                alert('服务暂时不可用，请稍后再试。');
+                return;
+            }
+            
+            try {
+                // 调用Supabase的重新发送验证邮件API
+                const { error } = await supabase.auth.resend({
+                    type: 'signup',
+                    email: email
+                });
+                
+                if (error) {
+                    console.error('重新发送验证邮件失败:', error.message);
+                    alert(`发送失败：${error.message}`);
+                    return;
+                }
+                
+                alert('验证邮件已重新发送，请查收您的邮箱。');
+            } catch (err) {
+                console.error('发送邮件过程中发生异常:', err.message);
+                alert('发送邮件过程中发生错误，请稍后再试。');
+            }
+        }
+        
+        // 页面加载时执行邮箱确认
+        document.addEventListener('DOMContentLoaded', () => {
+            handleEmailConfirmation();
+            
+            // 返回首页按钮点击事件
+            document.getElementById('back-btn').addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+            
+            // 登录按钮点击事件
+            document.getElementById('login-btn').addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+            
+            // 重新发送验证邮件按钮点击事件
+            document.getElementById('resend-btn').addEventListener('click', resendVerificationEmail);
+        });
+    </script>
+</body>
+</html>

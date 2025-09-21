@@ -95,20 +95,35 @@
             
             try {
                 // 使用Supabase的verifyOtp方法验证邮箱
-                const { error } = await supabase.auth.verifyOtp({
-                    token: token,
-                    type: 'email'
-                });
+                // 对于魔法链接，我们需要使用不同的验证方式
+                // 检查URL中是否有access_token和refresh_token参数
+                const urlParams = new URLSearchParams(window.location.search);
+                const accessToken = urlParams.get('access_token');
+                const refreshToken = urlParams.get('refresh_token');
                 
-                if (error) {
-                    console.error('邮箱验证失败:', error.message);
-                    document.getElementById('confirm-status').textContent = '验证失败';
-                    document.getElementById('confirm-message').textContent = '验证链接无效或已过期。';
-                    document.getElementById('error-details').textContent = error.message;
-                    document.getElementById('error-message').classList.remove('hidden');
-                    document.getElementById('resend-btn').classList.remove('hidden');
-                    return;
+                if (accessToken && refreshToken) {
+                    // 这是一个完整的魔法链接登录，直接设置会话
+                    const { error } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken
+                    });
+                    
+                    if (error) {
+                        throw error;
+                    }
+                } else {
+                    // 普通的邮箱验证链接
+                    const { error } = await supabase.auth.verifyOtp({
+                        token: token,
+                        type: 'email'
+                    });
+                    
+                    if (error) {
+                        throw error;
+                    }
                 }
+                
+                // 错误处理已经在上面的各个分支中完成，如果执行到这里表示验证成功
                 
                 // 验证成功
                 document.getElementById('confirm-status').textContent = '验证成功';
@@ -167,8 +182,10 @@
                 window.location.href = 'index.html';
             });
             
-            // 登录按钮点击事件
+            // 验证成功按钮点击事件
             document.getElementById('login-btn').addEventListener('click', () => {
+                // 设置登录标记，以便首页知道用户刚登录成功
+                localStorage.setItem('justLoggedIn', 'true');
                 window.location.href = 'index.html';
             });
             

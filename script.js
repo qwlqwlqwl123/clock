@@ -140,7 +140,32 @@ async function checkSession() {
         const { data } = await supabase.auth.getSession();
         
         if (data.session) {
+            // 保存用户ID
             state.userId = data.session.user.id;
+            
+            // 检查用户是否已通过魔法链接验证（非匿名用户）
+            const isAnonymous = data.session.user.user_metadata?.['provider'] === 'anon' || !data.session.user.email_confirmed_at;
+            
+            if (!isAnonymous) {
+                // 用户已通过魔法链接验证
+                state.isRegistered = true;
+                
+                // 如果是刚登录成功，显示欢迎消息
+                const isNewLogin = localStorage.getItem('justLoggedIn') !== 'true';
+                if (isNewLogin) {
+                    // 标记为已登录状态，避免重复显示欢迎消息
+                    localStorage.setItem('justLoggedIn', 'true');
+                    
+                    // 延迟执行，确保DOM已加载
+                    setTimeout(() => {
+                        showLoginStatusMessage(`欢迎回来，${data.session.user.email || '用户'}！您已成功登录。`);
+                    }, 1000);
+                }
+            }
+            
+            // 登录成功后，自动加载用户信息
+            await loadUserInfoFromSupabase();
+            
             return data.session.user;
         }
         
@@ -162,6 +187,7 @@ async function signOut() {
         localStorage.removeItem('gender');
         localStorage.removeItem('region');
         localStorage.removeItem('age');
+        localStorage.removeItem('justLoggedIn');
         
         // 重置状态
         resetUserState();
@@ -837,6 +863,32 @@ showUserInfoScreen = () => {
         }
     }
     
+    // 检查是否已登录并显示登录状态信息
+    const userLoginInfo = document.getElementById('user-login-info');
+    if (!userLoginInfo && isSupabaseAvailable()) {
+        // 获取当前用户信息
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user && !user.is_anonymous) {
+                // 创建并显示用户登录信息
+                const loginInfoDiv = document.createElement('div');
+                loginInfoDiv.id = 'user-login-info';
+                loginInfoDiv.style.margin = '10px 0';
+                loginInfoDiv.style.padding = '10px';
+                loginInfoDiv.style.backgroundColor = '#f0f9ff';
+                loginInfoDiv.style.borderRadius = '6px';
+                loginInfoDiv.style.fontSize = '12px';
+                loginInfoDiv.style.color = '#0288d1';
+                loginInfoDiv.innerHTML = `📧 已通过邮箱 ${user.email} 登录<br>👤 用户ID: ${user.id.substr(0, 8)}...`;
+                
+                // 插入到用户名输入框下方
+                DOM.userName.parentNode.appendChild(loginInfoDiv);
+            }
+        });
+    } else if (userLoginInfo && !state.isRegistered) {
+        // 如果用户未注册，移除登录信息
+        userLoginInfo.remove();
+    }
+    
     // 生成并显示头像
     if (!state.currentUserAvatar) {
         generateRandomAvatar();
@@ -1155,73 +1207,84 @@ setupEventListeners = () => {
     DOM.drawerOverlay.addEventListener('click', toggleUserInfoDrawer);
     DOM.backToClock.addEventListener('click', showClockScreen);
     
-    // 注册链接点击事件
-    DOM.registerLink.addEventListener('click', (e) => {
+    // 魔法链接登录事件
+    DOM.magicLinkLogin = document.getElementById('magic-link-login');
+    DOM.magicLinkLogin.addEventListener('click', (e) => {
         e.preventDefault(); // 阻止默认的链接行为
-        showEmailRegistrationForm(); // 显示邮箱注册表单
+        handleMagicLinkLogin(); // 处理魔法链接登录
     });
     
-    // 邮箱注册功能
-    async function emailSignUp(email, password) {
-        if (!isSupabaseAvailable()) {
-            alert('注册功能不可用，请稍后再试');
-            return null;
-        }
-        
-        try {
-            const { data, error } = await supabase.auth.signUp({
-                email: email,
-                password: password
-            });
-            
-            if (error) {
-                console.error('注册失败:', error.message);
-                alert(`注册失败：${error.message}`);
-                return null;
-            }
-            
-            // 注册成功，发送确认邮件
-            alert('注册成功！一封确认邮件已发送到您的邮箱，请查收并确认后登录。');
-            
-            // 清除本地存储的匿名用户ID
-            localStorage.removeItem('supabase_user_id');
-            
-            // 更新用户状态为已注册
-            state.isRegistered = true;
-            
-            return data;
-        } catch (err) {
-            console.error('注册过程中发生异常:', err.message);
-            alert('注册过程中发生错误，请稍后再试');
-            return null;
-        }
-    }
-    
-    // 显示邮箱注册表单
-    function showEmailRegistrationForm() {
-        const email = prompt('请输入您的邮箱地址:');
+    // 处理魔法链接登录
+    async function handleMagicLinkLogin() {
+        const email = prompt('请输入您的邮箱地址，我们将发送一个魔法链接到您的邮箱:');
         
         if (!email || !isValidEmail(email)) {
             alert('请输入有效的邮箱地址');
             return;
         }
         
-        const password = prompt('请设置密码（至少6位字符）:');
-        
-        if (!password || password.length < 6) {
-            alert('密码至少需要6位字符');
-            return;
+        const result = await sendMagicLink(email);
+        if (result) {
+            showLoginStatusMessage('登录链接已发送到您的邮箱，请查收并点击链接完成登录。');
+        }
+    }
+    
+    // 发送魔法链接到用户邮箱
+    async function sendMagicLink(email) {
+        if (!isSupabaseAvailable()) {
+            alert('登录功能不可用，请稍后再试');
+            return false;
         }
         
-        const confirmPassword = prompt('请再次输入密码以确认:');
+        try {
+            const { data, error } = await supabase.auth.signInWithOtp({
+                email: email,
+                options: {
+                    // 使用相对路径而不是绝对路径，避免本地开发环境的问题
+                    emailRedirectTo: 'index.html',
+                    // 确保使用正确的验证类型
+                    type: 'magiclink'
+                }
+            });
+            
+            if (error) {
+                console.error('发送魔法链接失败:', error.message);
+                alert(`发送魔法链接失败：${error.message}`);
+                return false;
+            }
+            
+            console.log('魔法链接发送成功:', data);
+            return true;
+        } catch (err) {
+            console.error('发送魔法链接过程中发生异常:', err.message);
+            alert('发送魔法链接过程中发生错误，请稍后再试');
+            return false;
+        }
+    }
+    
+    // 显示登录状态消息
+    function showLoginStatusMessage(message) {
+        // 检查是否已存在消息容器
+        let messageContainer = document.getElementById('login-status-message');
         
-        if (password !== confirmPassword) {
-            alert('两次输入的密码不一致');
-            return;
+        if (!messageContainer) {
+            // 创建消息容器
+            messageContainer = document.createElement('div');
+            messageContainer.id = 'login-status-message';
+            messageContainer.className = 'login-status-message';
+            document.body.appendChild(messageContainer);
         }
         
-        // 调用邮箱注册函数
-        emailSignUp(email, password);
+        // 设置消息内容
+        messageContainer.textContent = message;
+        
+        // 显示消息
+        messageContainer.classList.remove('hidden');
+        
+        // 3秒后自动隐藏
+        setTimeout(() => {
+            messageContainer.classList.add('hidden');
+        }, 3000);
     }
     
     // 验证邮箱格式

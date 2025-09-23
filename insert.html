@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase匿名数据插入测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3ECF8E',
+                        secondary: '#3182CE',
+                        neutral: '#F7FAFC',
+                        danger: '#E53E3E',
+                        success: '#48BB78'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
+            .transition-custom {
+                transition: all 0.3s ease;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="text-center mb-12">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-gray-800 mb-3">
+                <i class="fa fa-database text-primary mr-2"></i>Supabase匿名数据插入测试
+            </h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+                这个工具可以测试使用Supabase匿名账户向数据库插入数据的功能。请先配置你的Supabase项目信息，然后填写表单提交测试。
+            </p>
+        </header>
+
+        <div class="grid md:grid-cols-1 gap-8">
+            <!-- 配置区域 -->
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fa fa-cog text-secondary mr-2"></i>项目配置
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="supabaseUrl" class="block text-sm font-medium text-gray-700 mb-1">Supabase URL</label>
+                        <input type="text" id="supabaseUrl" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom"
+                            value="https://ylzhswdqigqnrqfvtayi.supabase.co">
+                    </div>
+                    <div>
+                        <label for="supabaseKey" class="block text-sm font-medium text-gray-700 mb-1">匿名密钥 (anon key)</label>
+                        <input type="text" id="supabaseKey" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom"
+                            value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsemhzd2RxaWdxbnJxZnZ0YXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxNTY2ODcsImV4cCI6MjA3MzczMjY4N30.GOESBmkHwI_nZNVtjJ5lC9P9EnGwbnpYy7l-HZX2HVE">
+                    </div>
+                    <div>
+                        <label for="tableName" class="block text-sm font-medium text-gray-700 mb-1">表名</label>
+                        <input type="text" id="tableName" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom"
+                            value="chat_messages">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据输入区域 -->
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fa fa-pencil-square-o text-secondary mr-2"></i>数据输入
+                </h2>
+                <form id="dataForm" class="space-y-4">
+                    <div>
+                        <label for="id" class="block text-sm font-medium text-gray-700 mb-1">ID (UUID 类型)</label>
+                        <input type="text" id="id" name="id" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom bg-gray-50"
+                            readonly>
+                    </div>
+                    <div>
+                        <label for="room_code" class="block text-sm font-medium text-gray-700 mb-1">Room Code (BPCHAR 类型)</label>
+                        <input type="text" id="room_code" name="room_code" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom"
+                            placeholder="例如: 5555">
+                    </div>
+                    <div>
+                        <label for="sender_id" class="block text-sm font-medium text-gray-700 mb-1">Sender ID (UUID 类型)</label>
+                        <input type="text" id="sender_id" name="sender_id" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom bg-gray-50"
+                            readonly>
+                    </div>
+                    <div>
+                        <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Content (TEXT 类型)</label>
+                        <textarea id="content" name="content" rows="3"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom"
+                            placeholder="请输入内容">你好！</textarea>
+                    </div>
+                    <div>
+                        <label for="sent_at" class="block text-sm font-medium text-gray-700 mb-1">Sent At (TIMESTAMPZ 类型)</label>
+                        <input type="text" id="sent_at" name="sent_at" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom bg-gray-50"
+                            readonly>
+                    </div>
+                    <button type="submit" 
+                        class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-custom flex items-center justify-center">
+                        <i class="fa fa-paper-plane mr-2"></i>提交数据
+                    </button>
+                </form>
+            </div>
+
+            <!-- 结果展示区域 -->
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fa fa-info-circle text-secondary mr-2"></i>操作结果
+                </h2>
+                <div id="result" class="p-4 rounded-lg bg-gray-50 min-h-[100px]">
+                    <p class="text-gray-500 italic">等待操作...</p>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center text-gray-500 text-sm">
+            <p>使用 Supabase 匿名账户进行数据插入测试 | 确保你的 Supabase 表已配置适当的匿名访问权限</p>
+        </footer>
+    </div>
+
+    <!-- Supabase JS 客户端 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dataForm = document.getElementById('dataForm');
+            const resultDiv = document.getElementById('result');
+            
+            // 生成UUID的函数
+                function generateUUID() {
+                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                        const r = Math.random() * 16 | 0;
+                        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    });
+                }
+                
+                // 自动填充UUID和时间戳
+                function populateAutoFields() {
+                    document.getElementById('id').value = '0280cd33-9be8-4f2a-9106-7397bc0891a2'; // 使用指定的UUID
+                    document.getElementById('sender_id').value = '0280cd33-9be8-4f2a-9106-7397bc0891a2'; // 使用与id相同的UUID
+                    document.getElementById('sent_at').value = new Date().toISOString();
+                }
+                
+                // 初始化时自动填充字段
+                populateAutoFields();
+                
+                // 表单提交处理
+                dataForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    // 获取配置信息
+                    const supabaseUrl = document.getElementById('supabaseUrl').value.trim();
+                    const supabaseKey = document.getElementById('supabaseKey').value.trim();
+                    const tableName = document.getElementById('tableName').value.trim();
+                    
+                    // 获取表单数据
+                    const id = document.getElementById('id').value.trim();
+                    const room_code = document.getElementById('room_code').value.trim();
+                    const sender_id = document.getElementById('sender_id').value.trim();
+                    const content = document.getElementById('content').value.trim();
+                    const sent_at = document.getElementById('sent_at').value.trim();
+                    
+                    // 验证配置
+                    if (!supabaseUrl || !supabaseKey || !tableName) {
+                        showResult('请填写完整的Supabase配置信息', 'error');
+                        return;
+                    }
+                    
+                    // 验证表单数据
+                    if (!room_code || !content) {
+                        showResult('请填写Room Code和Content字段', 'error');
+                        return;
+                    }
+                    
+                    try {
+                        // 显示加载状态
+                        showResult('<i class="fa fa-spinner fa-spin mr-2"></i>正在提交数据...', 'loading');
+                        
+                        // 初始化Supabase客户端
+                        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                        
+                        // 检查并创建用户（解决外键约束问题）
+                        try {
+                            // 先检查用户是否存在
+                            const { data: existingUser, error: checkError } = await supabase
+                                .from('anonymous_profiles')
+                                .select('id')
+                                .eq('id', sender_id)
+                                .single();
+                                  
+                            if (checkError) {
+                                // 如果查询出错（例如表不存在），尝试直接插入
+                                await supabase
+                                    .from('anonymous_profiles')
+                                    .insert([{
+                                        id: sender_id,
+                                        username: '匿名用户_' + Math.floor(Math.random() * 1000),
+                                        created_at: new Date().toISOString()
+                                    }]);
+                                console.log('匿名用户已创建（跳过检查直接插入）');
+                            } else if (!existingUser) {
+                                // 用户不存在，创建用户
+                                await supabase
+                                    .from('anonymous_profiles')
+                                    .insert([{
+                                        id: sender_id,
+                                        username: '匿名用户_' + Math.floor(Math.random() * 1000),
+                                        created_at: new Date().toISOString()
+                                    }]);
+                                console.log('匿名用户已创建');
+                            }
+                        } catch (userError) {
+                            console.warn('匿名用户检查/创建过程中出现错误:', userError);
+                            // 记录更详细的错误信息
+                            if (userError.message) console.warn('错误消息:', userError.message);
+                            if (userError.details) console.warn('错误详情:', userError.details);
+                        }
+                        
+                        // 额外创建用户到users表以满足外键约束（兼容不支持onConflict的版本）
+                        try {
+                            // 先检查用户是否存在
+                            const { data: existingUserInUsers } = await supabase
+                                .from('users')
+                                .select('id')
+                                .eq('id', sender_id)
+                                .single();
+                              
+                            if (!existingUserInUsers) {
+                                // 用户不存在，创建用户
+                                await supabase
+                                    .from('users')
+                                    .insert([{
+                                        id: sender_id,
+                                        username: '匿名用户_' + Math.floor(Math.random() * 1000),
+                                        created_at: new Date().toISOString()
+                                    }]);
+                                console.log('已在users表创建用户');
+                            } else {
+                                console.log('users表中用户已存在，跳过创建');
+                            }
+                        } catch (usersTableError) {
+                            console.warn('users表操作错误:', usersTableError);
+                        }
+                        
+                        // 准备要插入的数据
+                    const newData = {
+                        id: id,
+                        room_code: room_code,
+                        sender_id: sender_id,
+                        content: content,
+                        sent_at: sent_at
+                    };
+                
+                // 插入数据
+                const { data, error } = await supabase
+                    .from(tableName)
+                    .insert([newData])
+                    .select();
+                
+                if (error) {
+                    // 增强错误处理，根据错误类型提供更具体的错误信息
+                    let errorMessage = error.message || '未知错误';
+                    let errorDetails = error.details || '';
+                    
+                    // 针对常见错误类型提供更友好的提示
+                    if (error.code === '23503') {
+                        // 外键约束错误
+                        errorMessage = '外键约束错误';
+                        errorDetails = '请确保相关表中存在对应的记录';
+                    } else if (error.code === '23505') {
+                        // 唯一约束错误
+                        errorMessage = '记录已存在';
+                        errorDetails = '具有相同ID的记录已存在于表中';
+                    } else if (error.status === 400) {
+                        errorMessage = '请求无效';
+                        errorDetails = '请检查输入数据格式是否正确';
+                    } else if (error.status === 409) {
+                        errorMessage = '冲突错误';
+                        errorDetails = '数据与现有记录冲突';
+                    }
+                    
+                    // 构建更详细的错误对象
+                    const detailedError = {
+                        ...error,
+                        message: errorMessage,
+                        details: errorDetails,
+                        fullError: error
+                    };
+                    
+                    throw detailedError;
+                }
+                
+                // 显示成功结果
+                showResult(`
+                    <div class="text-success font-medium mb-2"><i class="fa fa-check-circle mr-1"></i>数据插入成功!</div>
+                    <div class="text-sm text-gray-700">
+                        <p>插入的记录ID: ${data && data[0] ? data[0].id || '未知' : '未知'}</p>
+                        <div class="mt-2 p-2 bg-gray-100 rounded text-xs overflow-x-auto">
+                            ${data ? JSON.stringify(data, null, 2) : '无数据返回'}
+                        </div>
+                    </div>
+                `, 'success');
+                    
+                } catch (error) {
+                    // 显示错误信息
+                    showResult(`
+                        <div class="text-danger font-medium mb-2"><i class="fa fa-exclamation-circle mr-1"></i>操作失败</div>
+                        <div class="text-sm text-gray-700">
+                            <p>${error.message}</p>
+                            ${error.details ? `<p class="mt-1">详情: ${error.details}</p>` : ''}
+                        </div>
+                    `, 'error');
+                    console.error('Supabase错误:', error);
+                }
+            });
+            
+            // 显示结果的函数
+            function showResult(html, type) {
+                resultDiv.innerHTML = html;
+                
+                // 设置样式
+                if (type === 'error') {
+                    resultDiv.className = 'p-4 rounded-lg bg-red-50 border border-red-100';
+                } else if (type === 'success') {
+                    resultDiv.className = 'p-4 rounded-lg bg-green-50 border border-green-100';
+                } else if (type === 'loading') {
+                    resultDiv.className = 'p-4 rounded-lg bg-blue-50 border border-blue-100';
+                } else {
+                    resultDiv.className = 'p-4 rounded-lg bg-gray-50';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

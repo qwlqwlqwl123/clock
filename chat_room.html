@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时聊天室</title>
+    <link rel="stylesheet" href="./chat_room.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            实时聊天室
+        </div>
+        <div class="chat-status" id="status">正在连接服务器...</div>
+        <div class="message-container" id="messageContainer"></div>
+        <div class="input-container">
+            <div id="messageStatus" class="message-status" style="display:none"></div>
+            <input type="text" id="messageInput" class="message-input" placeholder="输入消息..." disabled>
+            <button id="sendButton" class="send-button" disabled>发送</button>
+        </div>
+    </div>
+
+    <!-- 导入GoEasy的SDK -->
+    <script type="text/javascript" src="./goeasy-lite.min.js"></script>
+    <script type="text/javascript" src="./chat_room.js"></script>
+</body>
+</html>

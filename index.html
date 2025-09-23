@@ -3,145 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>网页时钟聊天室</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- 添加Supabase客户端库 -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <title>聊天室主页面</title>
+    <link rel="stylesheet" href="./index.css">
 </head>
 <body>
-    <!-- 引入本地安装的GoEasy包 -->
-    <script src="./goeasy.min.js"></script>
-    
-    <!-- 时钟界面 -->
-    <div id="clock-container" class="container">
-        <h1>网页时钟</h1>
-        <div class="clock">
-            <div id="time">00:00:00</div>
-            <div id="date">2023-01-01</div>
-            <div id="day">星期日</div>
-            <p class="hint">长按时间区域输入6位数字进入聊天室</p>
-        </div>
-    </div>
-
-    <!-- 聊天室列表界面 -->
-    <div id="input-container" class="container hidden">
-        <h2>我的聊天室</h2>
-        <button id="add-new-room" class="add-room-button">添加新聊天室</button>
-        <div id="room-list" class="room-list">
-            <!-- 聊天室列表将通过JavaScript动态生成 -->
-            <div class="room-list-placeholder">暂无进入过的聊天室</div>
-        </div>
-        <button id="back-to-clock" class="back-button">返回时钟</button>
-    </div>
-
-    <!-- 用户信息设置界面 -->
-    <div id="user-info-container" class="container hidden">
-        <h2>完善个人信息</h2>
-        <div class="user-info-form">
-            <div class="form-group">
-                <label for="user-name">昵称：</label>
-                <input type="text" id="user-name" placeholder="请输入昵称">
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 登录界面 -->
+        <div id="login-container" class="login-container">
+            <div class="login-box">
+                <h1>欢迎来到聊天室</h1>
+                <p>请输入4位数字进入聊天室</p>
+                <div class="code-input-container">
+                    <input type="text" id="room-code" maxlength="4" placeholder="输入4位房间号">
+                </div>
+                <button id="enter-button" class="enter-button">进入聊天室</button>
+                <p id="error-message" class="error-message"></p>
             </div>
-            
-            <div class="form-group">
-                <label>性别：</label>
-                <div class="gender-options">
-                    <label><input type="radio" name="gender" value="male" checked> 男</label>
-                    <label><input type="radio" name="gender" value="female"> 女</label>
+        </div>
+
+        <!-- 聊天室主界面 (初始隐藏) -->
+        <div id="chat-main" class="chat-main" style="display: none;">
+            <!-- 顶部导航栏 -->
+            <div class="top-nav">
+                <button id="toggle-history" class="nav-button">历史聊天室</button>
+                <h2 id="current-room-title">聊天室</h2>
+                <button id="toggle-profile" class="nav-button">个人信息</button>
+            </div>
+
+            <!-- 聊天内容区域 -->
+            <div class="chat-content">
+                <!-- 这里将嵌入现有的聊天室内容 -->
+                <div class="chat-frame">
+                    <iframe id="chat-iframe" src="" frameborder="0"></iframe>
                 </div>
             </div>
-            
-            <div class="form-group">
-                <label for="user-region">地域：</label>
-                <select id="user-region">
-                    <option value="北京">北京</option>
-                    <option value="上海">上海</option>
-                    <option value="广州">广州</option>
-                    <option value="深圳">深圳</option>
-                    <option value="杭州">杭州</option>
-                    <option value="南京">南京</option>
-                    <option value="成都">成都</option>
-                    <option value="武汉">武汉</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="user-age">年龄：</label>
-                <input type="number" id="user-age" min="1" max="120" placeholder="请输入年龄">
-            </div>
-            
-            <div class="form-group">
-                <label>头像：</label>
-                <div class="avatar-section">
-                    <img id="user-avatar" src="" alt="用户头像" class="avatar">
-                    <button id="change-avatar-btn" class="change-avatar-btn">更换头像</button>
-                </div>
-            </div>
-            
-            <!-- 游客状态提示 -->
-            <div class="visitor-notice">
-                <p class="notice-text">💡 提示：您当前是随机游客，用户数据可能丢失，建议您<a href="#" id="magic-link-login" class="register-link">使用邮箱登录</a>以保存您的信息。</p>
-            </div>
-            
-            <div class="form-actions">
-                <button id="save-user-info-btn" class="save-button">保存信息并进入聊天室</button>
-            </div>
         </div>
     </div>
 
-    <!-- 抽屉遮罩层 -->
-    <div id="drawer-overlay" class="drawer-overlay"></div>
-
-    <!-- 用户信息抽屉 -->
-    <div id="user-info-drawer" class="drawer">
+    <!-- 左侧抽屉 - 历史聊天室 -->
+    <div id="history-drawer" class="drawer drawer-left">
         <div class="drawer-header">
-            <h3>个人信息</h3>
-            <button id="close-drawer" class="close-drawer-btn">×</button>
+            <h3>历史聊天室</h3>
+            <button id="close-history" class="close-button">×</button>
         </div>
         <div class="drawer-content">
-            <div class="user-avatar-large">
-                <img id="drawer-user-avatar" src="" alt="用户头像">
+            <ul id="history-list" class="history-list">
+                <!-- 历史聊天室列表将通过JavaScript动态生成 -->
+                <li class="history-list-item">暂无历史记录</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 右侧抽屉 - 个人信息 -->
+    <div id="profile-drawer" class="drawer drawer-right">
+        <div class="drawer-header">
+            <h3>个人信息</h3>
+            <button id="close-profile" class="close-button">×</button>
+        </div>
+        <div class="drawer-content">
+            <div class="profile-info">
+                <div class="profile-avatar">
+                    <div id="avatar-placeholder" class="avatar-placeholder">用户</div>
+                </div>
+                <div class="profile-details">
+                    <p><strong>用户名:</strong> <span id="profile-username">加载中...</span></p>
+                    <p><strong>用户ID:</strong> <span id="profile-userid">加载中...</span></p>
+                    <p><strong>上次登录:</strong> <span id="profile-lastlogin">加载中...</span></p>
+                </div>
             </div>
-            <div class="user-info-item">
-                <span class="info-label">昵称：</span>
-                <span id="drawer-user-name"></span>
-            </div>
-            <div class="user-info-item">
-                <span class="info-label">性别：</span>
-                <span id="drawer-user-gender"></span>
-            </div>
-            <div class="user-info-item">
-                <span class="info-label">地域：</span>
-                <span id="drawer-user-region"></span>
-            </div>
-            <div class="user-info-item">
-                <span class="info-label">年龄：</span>
-                <span id="drawer-user-age"></span>
-            </div>
-            
-            <!-- 修改个人信息按钮 -->
-            <div class="drawer-actions">
-                <button id="edit-user-info-btn" class="edit-button">修改个人信息</button>
+            <div class="profile-actions">
+                <div class="profile-edit-form">
+                    <h4>编辑个人信息</h4>
+                    <div class="form-group">
+                        <label for="nickname-input">昵称:</label>
+                        <input type="text" id="nickname-input" placeholder="请输入昵称">
+                    </div>
+                    <div class="form-group">
+                        <label for="gender-select">性别:</label>
+                        <select id="gender-select">
+                            <option value="">请选择</option>
+                            <option value="male">男</option>
+                            <option value="female">女</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="age-input">年龄:</label>
+                        <input type="number" id="age-input" min="1" max="149" placeholder="请输入年龄">
+                    </div>
+                    <div class="form-group">
+                        <label for="region-input">地区:</label>
+                        <input type="text" id="region-input" placeholder="请输入地区">
+                    </div>
+                    <button id="save-profile-btn" class="save-profile-btn">保存设置</button>
+                </div>
+                <button id="logout-button" class="logout-button">退出登录</button>
             </div>
         </div>
     </div>
 
-    <!-- 聊天室界面 -->
-    <div id="chat-container" class="container hidden">
-        <div class="chat-header">
-            <div class="chat-header-left">
-                <button id="my-page-btn" class="my-page-button">我的页面</button>
-                <h2>聊天室 <span id="current-room"></span></h2>
-            </div>
-            <button id="leave-chat" class="leave-button">离开聊天室</button>
-        </div>
-        <div id="messages" class="messages"></div>
-        <div class="chat-input-area">
-            <input type="text" id="message-input" placeholder="输入消息...">
-            <button id="send-message" class="send-button">发送</button>
-        </div>
-    </div>
+    <!-- 遮罩层 -->
+    <div id="overlay" class="overlay" style="display: none;"></div>
 
-    <script src="script.js"></script>
+    <!-- 导入必要的库 -->
+    <script src="./load_supabase.js"></script>
+    <script src="./index.js"></script>
 </body>
 </html>

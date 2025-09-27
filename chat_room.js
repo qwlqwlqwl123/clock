@@ -645,16 +645,18 @@ function sendMessage() {
         return;
     }
     
-    // 构造消息对象
+    // 构造消息对象，包含sender_id和avatar_url
     const messageData = {
         username: username,
         content: content,
         time: new Date().toLocaleTimeString(),
         type: 'normal',
-        timestamp: new Date().toISOString() // 使用ISO格式的时间戳，与数据库保持一致
+        timestamp: new Date().toISOString(), // 使用ISO格式的时间戳，与数据库保持一致
+        sender_id: currentUser ? currentUser.id : localStorage.getItem('mock_user_id') || 'anonymous_' + Date.now(),
+        avatar_url: currentUser && currentUser.avatar_url ? currentUser.avatar_url : null
     };
     
-    // 先在本地显示消息
+    // 先在本地显示消息，包含用户头像
     appendSelfMessage(content, true);
     
     // 向频道发送消息
